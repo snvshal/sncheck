@@ -15,7 +15,7 @@ export function writeConfig(tasks: Task[]): void {
     })
     .join(',\n');
 
-  const configContent = `import type { Task } from "check-cli";
+  const configContent = `import type { Task } from "sncheck";
 
 export const tasks: Task[] = [
 ${tasksContent}

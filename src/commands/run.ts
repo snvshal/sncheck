@@ -7,7 +7,7 @@ export async function runCommand(taskNames?: string[]): Promise<void> {
   const tasks = await loadConfig();
 
   if (tasks.length === 0) {
-    console.log(chalk.yellow("No tasks configured. Run 'check init' to get started."));
+    console.log(chalk.yellow("No tasks configured. Run 'sncheck init' to get started."));
     process.exit(0);
   }
 

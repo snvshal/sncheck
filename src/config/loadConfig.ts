@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { pathToFileURL } from 'url';
 import type { Config, Task } from '../types/index.js';
 
-const CONFIG_FILE = 'check.config.ts';
+const CONFIG_FILE = 'sncheck.config.ts';
 
 export function getConfigPath(): string {
   return resolve(process.cwd(), CONFIG_FILE);

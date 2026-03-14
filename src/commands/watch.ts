@@ -5,7 +5,7 @@ import { runTasks } from '../runner/runTasks.js';
 
 export async function watchCommand(): Promise<void> {
   if (!configExists()) {
-    console.log(chalk.yellow("No configuration found. Run 'check init' first."));
+    console.log(chalk.yellow("No configuration found. Run 'sncheck init' first."));
     process.exit(1);
   }
 

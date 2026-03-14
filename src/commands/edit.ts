@@ -5,7 +5,7 @@ import { writeConfig } from '../config/writeConfig.js';
 
 export async function editCommand(): Promise<void> {
   if (!configExists()) {
-    console.log(chalk.yellow("No configuration found. Run 'check init' first."));
+    console.log(chalk.yellow("No configuration found. Run 'sncheck init' first."));
     process.exit(1);
   }
 

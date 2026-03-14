@@ -1,11 +1,11 @@
 {
-  "name": "check-cli",
+  "name": "sncheck",
   "version": "1.0.0",
   "description": "A CLI tool that orchestrates common project quality checks",
   "main": "dist/cli.js",
   "type": "module",
   "bin": {
-    "check": "./dist/cli.js"
+    "sncheck": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

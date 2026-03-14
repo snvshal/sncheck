@@ -11,11 +11,11 @@ import { watchCommand } from './commands/watch.js';
 const program = new Command();
 
 program
-  .name('check')
+  .name('sncheck')
   .description('A CLI tool that orchestrates common project quality checks')
   .version('1.0.0');
 
-program.command('init').description('Initialize check configuration').action(initCommand);
+program.command('init').description('Initialize sncheck configuration').action(initCommand);
 
 program
   .command('run')
