@@ -33,4 +33,9 @@ program.command('remove').description('Remove a task').action(removeCommand);
 
 program.command('watch').description('Run tasks in watch mode').action(watchCommand);
 
-program.parse();
+const args = process.argv.slice(2);
+if (args.length === 0) {
+  runCommand();
+} else {
+  program.parse();
+}

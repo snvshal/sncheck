@@ -32,6 +32,7 @@ check init
 ```
 
 **Behavior:**
+
 1. Scan project directory for common config files
 2. Display detected tools with checkboxes
 3. Allow user to select which tasks to include
@@ -57,6 +58,7 @@ check
 ```
 
 **Behavior:**
+
 - Load tasks from `check.config.ts`
 - Execute tasks sequentially using listr2
 - Display progress with clean TUI
@@ -64,6 +66,7 @@ check
 - Show success/failure status for each task
 
 **Output Example (success):**
+
 ```
 ✔ typecheck
 ✔ lint
@@ -73,6 +76,7 @@ check
 ```
 
 **Output Example (failure):**
+
 ```
 ✔ typecheck
 ✖ lint
@@ -88,11 +92,13 @@ check run <task1> <task2> ...
 ```
 
 **Behavior:**
+
 - Run only specified tasks from config
 - Tasks run sequentially
 - Stop on first failure
 
 **Example:**
+
 ```bash
 check run lint test
 ```
@@ -106,12 +112,14 @@ check add
 ```
 
 **Behavior:**
+
 - Interactive prompt for task name
 - Interactive prompt for command
 - Optional description
 - Appends to `check.config.ts`
 
 **Prompt Example:**
+
 ```
 Task name: lint
 Command: eslint .
@@ -127,6 +135,7 @@ check edit
 ```
 
 **Behavior:**
+
 - Display list of existing tasks
 - User selects task to edit
 - Edit name, command, or description
@@ -141,6 +150,7 @@ check remove
 ```
 
 **Behavior:**
+
 - Display list of tasks
 - User selects task to remove
 - Removes from `check.config.ts`
@@ -154,6 +164,7 @@ check watch
 ```
 
 **Behavior:**
+
 - Watch for file changes in project
 - Re-run tasks when files change
 - Debounce changes (500ms)
@@ -166,25 +177,26 @@ check watch
 **Filename:** `check.config.ts`
 
 **Structure:**
+
 ```typescript
 export interface Task {
-  name: string
-  cmd: string
-  description?: string
+  name: string;
+  cmd: string;
+  description?: string;
 }
 
 export const tasks: Task[] = [
   {
-    name: "typecheck",
-    cmd: "tsc --noEmit",
-    description: "TypeScript type checking"
+    name: 'typecheck',
+    cmd: 'tsc --noEmit',
+    description: 'TypeScript type checking',
   },
   {
-    name: "lint",
-    cmd: "eslint .",
-    description: "Run ESLint"
-  }
-]
+    name: 'lint',
+    cmd: 'eslint .',
+    description: 'Run ESLint',
+  },
+];
 ```
 
 ---
@@ -192,30 +204,37 @@ export const tasks: Task[] = [
 ## Built-in Providers
 
 ### TypeScript
+
 - **Command:** `tsc --noEmit`
 - **Description:** TypeScript type checking
 
 ### ESLint
+
 - **Command:** `eslint .`
 - **Description:** ESLint linting
 
 ### Prettier
+
 - **Command:** `prettier --check .`
 - **Description:** Check code formatting
 
 ### Vitest
+
 - **Command:** `vitest run`
 - **Description:** Run Vitest tests
 
 ### Jest
+
 - **Command:** `jest`
 - **Description:** Run Jest tests
 
 ### Vite Build
+
 - **Command:** `vite build`
 - **Description:** Build with Vite
 
 ### Next.js Build
+
 - **Command:** `next build`
 - **Description:** Build with Next.js
 
