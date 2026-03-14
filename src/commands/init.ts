@@ -50,7 +50,7 @@ export async function initCommand(): Promise<void> {
 
   if (selectedTasks.length > 0) {
     writeConfig(selectedTasks);
-    console.log(chalk.green(`\nConfiguration written to sncheck.config.ts`));
+    console.log(chalk.green(`\nConfiguration written to sncheck.config.js`));
     console.log(chalk.blue("Run 'sncheck' to execute all tasks"));
   } else {
     console.log(chalk.yellow('\nNo tasks selected. Configuration not created.'));

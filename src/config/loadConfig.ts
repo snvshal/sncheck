@@ -3,20 +3,26 @@ import { resolve } from 'path';
 import { pathToFileURL } from 'url';
 import type { Config, Task } from '../types/index.js';
 
-const CONFIG_FILE = 'sncheck.config.ts';
+const CONFIG_FILES = ['sncheck.config.ts', 'sncheck.config.js'];
 
-export function getConfigPath(): string {
-  return resolve(process.cwd(), CONFIG_FILE);
+export function getConfigPath(): string | undefined {
+  for (const file of CONFIG_FILES) {
+    const path = resolve(process.cwd(), file);
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+  return undefined;
 }
 
 export function configExists(): boolean {
-  return existsSync(getConfigPath());
+  return getConfigPath() !== undefined;
 }
 
 export async function loadConfig(): Promise<Task[]> {
   const configPath = getConfigPath();
 
-  if (!configExists()) {
+  if (!configPath) {
     return [];
   }
 
