@@ -14,6 +14,11 @@ export interface Config {
   tasks: Task[];
 }
 
+export interface TaskError {
+  task: string;
+  output: string;
+}
+
 export type TaskContext = {
   tasks: Task[];
   failed: boolean;

@@ -1,6 +1,7 @@
 import { execa } from 'execa';
 import chalk from 'chalk';
-import type { Task } from '../types/index.js';
+import readline from 'readline';
+import type { Task, TaskError } from '../types/index.js';
 
 interface RunnerOptions {
   parallel?: boolean;
@@ -10,10 +11,32 @@ interface RunResult {
   passed: number;
   failed: number;
   allPassed: boolean;
+  errors: TaskError[];
 }
 
 function padEnd(str: string, length: number): string {
   return str + ' '.repeat(Math.max(0, length - str.length));
+}
+
+async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
+  if (errors.length === 0) return;
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  process.stdout.write('\n');
+  process.stdout.write(chalk.blue('═══════════════════════ Errors ═══════════════════════\n'));
+
+  errors.forEach((err, idx) => {
+    process.stdout.write(chalk.red(`\n[${idx + 1}] ${err.task}:\n`));
+    process.stdout.write(err.output + '\n');
+  });
+
+  process.stdout.write(chalk.blue('\n═══════════════════════════════════════════════════════\n'));
+
+  rl.close();
 }
 
 async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number): Promise<{ success: boolean; output: string }> {
@@ -77,6 +100,7 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
+  const errors: TaskError[] = [];
 
   for (const task of tasks) {
     const result = await runSingleTask(task, nameWidth, cmdWidth);
@@ -84,6 +108,7 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
       passed++;
     } else {
       failed++;
+      errors.push({ task: task.name, output: result.output });
       break;
     }
   }
@@ -97,7 +122,11 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
     process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
   }
 
-  return { passed, failed, allPassed: failed === 0 };
+  if (errors.length > 0) {
+    await showErrorsPrompt(errors);
+  }
+
+  return { passed, failed, allPassed: failed === 0, errors };
 }
 
 async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number): Promise<RunResult> {
@@ -176,6 +205,9 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
 
   const passed = taskStates.filter(s => s.status === 'success').length;
   const failed = taskStates.filter(s => s.status === 'failed').length;
+  const errors: TaskError[] = taskStates
+    .filter(s => s.status === 'failed')
+    .map(s => ({ task: s.task.name, output: s.output || '' }));
 
   process.stdout.write('\n');
   if (failed === 0) {
@@ -184,5 +216,9 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
   }
 
-  return { passed, failed, allPassed: failed === 0 };
+  if (errors.length > 0) {
+    await showErrorsPrompt(errors);
+  }
+
+  return { passed, failed, allPassed: failed === 0, errors };
 }
