@@ -3,7 +3,7 @@ import { loadConfig, getTaskNames, findTaskByName } from '../config/loadConfig.j
 import { runTasks } from '../runner/runTasks.js';
 import type { Task } from '../types/index.js';
 
-export async function runCommand(taskNames?: string[]): Promise<void> {
+export async function runCommand(taskNames?: string[], options?: { parallel?: boolean }): Promise<void> {
   const tasks = await loadConfig();
 
   if (tasks.length === 0) {
@@ -28,15 +28,10 @@ export async function runCommand(taskNames?: string[]): Promise<void> {
     tasksToRun = tasks;
   }
 
-  console.log(chalk.blue(`Running ${tasksToRun.length} task(s)...\n`));
+  const parallel = options?.parallel ?? false;
+  console.log(chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...\n`));
 
-  const success = await runTasks(tasksToRun);
+  const result = await runTasks(tasksToRun, { parallel });
 
-  if (success) {
-    console.log(chalk.green('\n✓ All tasks passed'));
-    process.exit(0);
-  } else {
-    console.log(chalk.red('\n✗ Some tasks failed'));
-    process.exit(1);
-  }
+  process.exit(result.allPassed ? 0 : 1);
 }

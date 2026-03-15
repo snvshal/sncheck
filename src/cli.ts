@@ -20,9 +20,10 @@ program.command('init').description('Initialize sncheck configuration').action(i
 program
   .command('run')
   .description('Run specific tasks')
+  .option('--parallel', 'Run tasks in parallel')
   .argument('[tasks...]', 'Tasks to run')
-  .action((taskNames: string[] | undefined) => {
-    runCommand(taskNames);
+  .action((taskNames: string[] | undefined, options: { parallel?: boolean }) => {
+    runCommand(taskNames, options);
   });
 
 program.command('add').description('Add a new task').action(addCommand);
