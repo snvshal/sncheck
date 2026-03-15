@@ -21,8 +21,9 @@ program
   .command('run')
   .description('Run specific tasks')
   .option('--parallel', 'Run tasks in parallel')
+  .option('--continue', 'Run all tasks even if one fails')
   .argument('[tasks...]', 'Tasks to run')
-  .action((taskNames: string[] | undefined, options: { parallel?: boolean }) => {
+  .action((taskNames: string[] | undefined, options: { parallel?: boolean; continue?: boolean }) => {
     runCommand(taskNames, options);
   });
 

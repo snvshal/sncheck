@@ -5,6 +5,7 @@ import type { Task, TaskError } from '../types/index.js';
 
 interface RunnerOptions {
   parallel?: boolean;
+  continue?: boolean;
 }
 
 interface RunResult {
@@ -88,15 +89,16 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const { parallel = false } = options;
   const nameWidth = Math.max(...tasks.map((t) => t.name.length));
   const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
+  const continueOnError = options?.continue ?? false;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth);
+    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError);
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth);
+  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError);
 }
 
-async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number): Promise<RunResult> {
+async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
@@ -109,7 +111,9 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
     } else {
       failed++;
       errors.push({ task: task.name, output: result.output });
-      break;
+      if (!continueOnError) {
+        break;
+      }
     }
   }
 
@@ -129,7 +133,7 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   return { passed, failed, allPassed: failed === 0, errors };
 }
 
-async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number): Promise<RunResult> {
+async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean): Promise<RunResult> {
   const startTime = Date.now();
 
   interface TaskState {
