@@ -6,6 +6,7 @@ import type { Task, TaskError } from '../types/index.js';
 interface RunnerOptions {
   parallel?: boolean;
   continue?: boolean;
+  verbose?: boolean;
 }
 
 interface RunResult {
@@ -40,7 +41,7 @@ async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
   rl.close();
 }
 
-async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number): Promise<{ success: boolean; output: string }> {
+async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, verbose: boolean): Promise<{ success: boolean; output: string }> {
   const title = task.name.charAt(0).toUpperCase() + task.name.slice(1);
   const paddedName = padEnd(title, nameWidth);
   const paddedCmd = padEnd(task.cmd, cmdWidth);
@@ -49,10 +50,13 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number): P
   const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   let spinnerIndex = 0;
 
-  const spinnerInterval = setInterval(() => {
-    process.stdout.write('\r' + chalk.yellow(spinnerChars[spinnerIndex % 10]) + ' ' + taskLine);
-    spinnerIndex++;
-  }, 100);
+  let spinnerInterval: ReturnType<typeof setInterval> | undefined;
+  if (!verbose) {
+    spinnerInterval = setInterval(() => {
+      process.stdout.write('\r' + chalk.yellow(spinnerChars[spinnerIndex % 10]) + ' ' + taskLine);
+      spinnerIndex++;
+    }, 100);
+  }
 
   const startTime = Date.now();
 
@@ -64,23 +68,43 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number): P
       reject: false,
     });
 
-    clearInterval(spinnerInterval);
+    if (spinnerInterval) clearInterval(spinnerInterval);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
+    if (verbose) {
+      if (result.failed) {
+        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+        if (result.stdout || result.stderr) {
+          const output = result.stderr || result.stdout || '';
+          const indentedOutput = output.split('\n').map(line => '  ' + line).join('\n');
+          process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+          process.stdout.write(indentedOutput + '\n');
+        }
+      } else {
+        process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
+      }
+    }
+
     if (result.failed) {
-      process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
-      if (result.shortMessage) {
-        process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
+      if (!verbose) {
+        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+        if (result.shortMessage) {
+          process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
+        }
       }
       return { success: false, output: result.stderr || result.stdout || result.shortMessage || '' };
     } else {
-      process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
+      if (!verbose) {
+        process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
+      }
       return { success: true, output: '' };
     }
   } catch (error) {
-    clearInterval(spinnerInterval);
+    if (spinnerInterval) clearInterval(spinnerInterval);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-    process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+    if (!verbose) {
+      process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+    }
     return { success: false, output: String(error) };
   }
 }
@@ -90,22 +114,23 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const nameWidth = Math.max(...tasks.map((t) => t.name.length));
   const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
   const continueOnError = options?.continue ?? false;
+  const verbose = options?.verbose ?? false;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError);
+    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose);
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError);
+  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose);
 }
 
-async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean): Promise<RunResult> {
+async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean, verbose: boolean): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
   const errors: TaskError[] = [];
 
   for (const task of tasks) {
-    const result = await runSingleTask(task, nameWidth, cmdWidth);
+    const result = await runSingleTask(task, nameWidth, cmdWidth, verbose);
     if (result.success) {
       passed++;
     } else {
@@ -126,14 +151,14 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
     process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
   }
 
-  if (errors.length > 0) {
+  if (errors.length > 0 && !verbose) {
     await showErrorsPrompt(errors);
   }
 
   return { passed, failed, allPassed: failed === 0, errors };
 }
 
-async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean): Promise<RunResult> {
+async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean): Promise<RunResult> {
   const startTime = Date.now();
 
   interface TaskState {
@@ -201,8 +226,10 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
       process.stdout.write(chalk.green('✓') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
     } else {
       process.stdout.write(chalk.red('✗') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
-      if (state.output) {
-        process.stdout.write('  ' + state.output.split('\n')[0] + '\n');
+      if (verbose && state.output) {
+        const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
+        process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+        process.stdout.write(indentedOutput + '\n');
       }
     }
   }
@@ -220,7 +247,7 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
   }
 
-  if (errors.length > 0) {
+  if (errors.length > 0 && !verbose) {
     await showErrorsPrompt(errors);
   }
 
