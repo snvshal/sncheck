@@ -74,6 +74,7 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
 }
 
 async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number): Promise<RunResult> {
+  const startTime = Date.now();
   let passed = 0;
   let failed = 0;
 
@@ -87,10 +88,21 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
     }
   }
 
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+
+  process.stdout.write('\n');
+  if (failed === 0) {
+    process.stdout.write(chalk.green(`✓ ${passed} passed`) + `  (${totalTime})` + '\n');
+  } else {
+    process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
+  }
+
   return { passed, failed, allPassed: failed === 0 };
 }
 
 async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number): Promise<RunResult> {
+  const startTime = Date.now();
+
   interface TaskState {
     task: Task;
     title: string;
@@ -123,7 +135,7 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
 
   const runningPromises = taskStates.map((state) => {
     const [command, ...args] = state.task.cmd.split(' ');
-    const startTime = Date.now();
+    const taskStartTime = Date.now();
 
     return (async () => {
       try {
@@ -133,12 +145,12 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
           reject: false,
         });
 
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
         state.duration = duration;
         state.status = result.failed ? 'failed' : 'success';
         state.output = result.stderr || result.stdout || result.shortMessage || '';
       } catch (error) {
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
         state.duration = duration;
         state.status = 'failed';
         state.output = String(error);
@@ -147,6 +159,8 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
   });
 
   await Promise.all(runningPromises);
+
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   process.stdout.write('\n');
   for (const state of taskStates) {
@@ -165,9 +179,9 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
 
   process.stdout.write('\n');
   if (failed === 0) {
-    process.stdout.write(chalk.green(`✓ All ${passed} task(s) passed`) + '\n');
+    process.stdout.write(chalk.green(`✓ ${passed} passed`) + `  (${totalTime})` + '\n');
   } else {
-    process.stdout.write(`${passed} passed, ${failed} failed` + '\n');
+    process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
   }
 
   return { passed, failed, allPassed: failed === 0 };
