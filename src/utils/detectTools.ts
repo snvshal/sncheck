@@ -9,37 +9,37 @@ const toolDetectionMap: Array<{
 }> = [
   {
     files: ['tsconfig.json'],
-    provider: { name: 'typecheck', cmd: 'tsc --noEmit' },
+    provider: { name: 'typecheck', cmd: 'npx tsc --noEmit' },
     description: 'TypeScript type checking',
   },
   {
     files: ['eslint.config.js', '.eslintrc.js', '.eslintrc.json', '.eslintrc'],
-    provider: { name: 'lint', cmd: 'eslint .' },
+    provider: { name: 'lint', cmd: 'npx eslint .' },
     description: 'ESLint linting',
   },
   {
     files: ['prettier.config.js', '.prettierrc', '.prettierrc.json'],
-    provider: { name: 'format', cmd: 'prettier --check .' },
+    provider: { name: 'format', cmd: 'npx prettier --check .' },
     description: 'Check code formatting',
   },
   {
     files: ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts'],
-    provider: { name: 'test', cmd: 'vitest run' },
+    provider: { name: 'test', cmd: 'npx vitest run' },
     description: 'Run Vitest tests',
   },
   {
     files: ['jest.config.js', 'jest.config.ts', 'jest.config.json'],
-    provider: { name: 'test', cmd: 'jest' },
+    provider: { name: 'test', cmd: 'npx jest' },
     description: 'Run Jest tests',
   },
   {
     files: ['vite.config.ts', 'vite.config.js', 'vite.config.mts'],
-    provider: { name: 'build', cmd: 'vite build' },
+    provider: { name: 'build', cmd: 'npx vite build' },
     description: 'Build with Vite',
   },
   {
     files: ['next.config.js', 'next.config.ts', 'next.config.mjs'],
-    provider: { name: 'build', cmd: 'next build' },
+    provider: { name: 'build', cmd: 'npx next build' },
     description: 'Build with Next.js',
   },
 ];

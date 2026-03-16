@@ -30,7 +30,9 @@ export function writeConfig(tasks: Task[]): void {
 
   const tasksContent = tasks
     .map((task) => {
-      const description = task.description ? `  description: "${task.description}",` : '';
+      const description = task.description
+        ? `\n    description: "${task.description}",`
+        : '';
       return `  {
     name: "${task.name}",
     cmd: "${task.cmd}",${description}
