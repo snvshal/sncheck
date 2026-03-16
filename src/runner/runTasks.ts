@@ -7,6 +7,7 @@ interface RunnerOptions {
   parallel?: boolean;
   continue?: boolean;
   verbose?: boolean;
+  timeout?: number;
 }
 
 interface RunResult {
@@ -41,7 +42,7 @@ async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
   rl.close();
 }
 
-async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, verbose: boolean): Promise<{ success: boolean; output: string }> {
+async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, verbose: boolean, timeout?: number): Promise<{ success: boolean; output: string; timedOut: boolean }> {
   const title = task.name.charAt(0).toUpperCase() + task.name.slice(1);
   const paddedName = padEnd(title, nameWidth);
   const paddedCmd = padEnd(task.cmd, cmdWidth);
@@ -62,11 +63,24 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 
   try {
     const [command, ...args] = task.cmd.split(' ');
-    const result = await execa(command, args, {
+    
+    const execaOptions = {
       shell: true,
-      stdio: 'pipe',
+      stdio: 'pipe' as const,
       reject: false,
-    });
+    };
+
+    let result;
+    if (timeout) {
+      result = await Promise.race([
+        execa(command, args, execaOptions),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
+        )
+      ]);
+    } else {
+      result = await execa(command, args, execaOptions);
+    }
 
     if (spinnerInterval) clearInterval(spinnerInterval);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
@@ -92,20 +106,25 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
           process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
         }
       }
-      return { success: false, output: result.stderr || result.stdout || result.shortMessage || '' };
+      return { success: false, output: result.stderr || result.stdout || result.shortMessage || '', timedOut: false };
     } else {
       if (!verbose) {
         process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
       }
-      return { success: true, output: '' };
+      return { success: true, output: '', timedOut: false };
     }
   } catch (error) {
     if (spinnerInterval) clearInterval(spinnerInterval);
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    const err = error as Error;
+    const timedOut = err.message?.includes('Timed out');
     if (!verbose) {
       process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+      if (timedOut) {
+        process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
+      }
     }
-    return { success: false, output: String(error) };
+    return { success: false, output: String(error), timedOut };
   }
 }
 
@@ -115,22 +134,23 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
   const continueOnError = options?.continue ?? false;
   const verbose = options?.verbose ?? false;
+  const timeout = options?.timeout;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose);
+    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose);
+  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
 }
 
-async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean, verbose: boolean): Promise<RunResult> {
+async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
   const errors: TaskError[] = [];
 
   for (const task of tasks) {
-    const result = await runSingleTask(task, nameWidth, cmdWidth, verbose);
+    const result = await runSingleTask(task, nameWidth, cmdWidth, verbose, timeout);
     if (result.success) {
       passed++;
     } else {
@@ -158,7 +178,7 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   return { passed, failed, allPassed: failed === 0, errors };
 }
 
-async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean): Promise<RunResult> {
+async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
   const startTime = Date.now();
 
   interface TaskState {
@@ -197,11 +217,23 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
 
     return (async () => {
       try {
-        const result = await execa(command, args, {
+        const execaOptions = {
           shell: true,
-          stdio: 'pipe',
+          stdio: 'pipe' as const,
           reject: false,
-        });
+        };
+
+        let result;
+        if (timeout) {
+          result = await Promise.race([
+            execa(command, args, execaOptions),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
+            )
+          ]);
+        } else {
+          result = await execa(command, args, execaOptions);
+        }
 
         const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
         state.duration = duration;
@@ -211,7 +243,8 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
         const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
         state.duration = duration;
         state.status = 'failed';
-        state.output = String(error);
+        const err = error as Error;
+        state.output = err.message?.includes('Timed out') ? err.message : String(error);
       }
     })();
   });

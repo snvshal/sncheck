@@ -25,8 +25,9 @@ program
   .option('--parallel', 'Run tasks in parallel')
   .option('--continue', 'Run all tasks even if one fails')
   .option('--verbose', 'Show full command output')
+  .option('--timeout <seconds>', 'Timeout for each task in seconds')
   .argument('[tasks...]', 'Tasks to run')
-  .action((taskNames: string[] | undefined, options: { parallel?: boolean; continue?: boolean; verbose?: boolean }) => {
+  .action((taskNames: string[] | undefined, options: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string }) => {
     runCommand(taskNames, options);
   });
 
@@ -39,8 +40,28 @@ program.command('remove').description('Remove a task').action(removeCommand);
 program.command('watch').description('Run tasks in watch mode').action(watchCommand);
 
 const args = process.argv.slice(2);
+
 if (args.length === 0) {
   runCommand();
 } else {
-  program.parse();
+  const globalOptions = ['--parallel', '--continue', '--verbose', '--timeout'];
+  const hasGlobalOption = args.some(arg => globalOptions.includes(arg.split('=')[0]));
+  const hasSubcommand = ['init', 'run', 'add', 'edit', 'remove', 'watch'].includes(args[0]);
+
+  if (hasGlobalOption && !hasSubcommand) {
+    const options: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string } = {};
+    
+    if (args.includes('--parallel')) options.parallel = true;
+    if (args.includes('--continue')) options.continue = true;
+    if (args.includes('--verbose')) options.verbose = true;
+    
+    const timeoutIdx = args.indexOf('--timeout');
+    if (timeoutIdx !== -1 && args[timeoutIdx + 1]) {
+      options.timeout = args[timeoutIdx + 1];
+    }
+    
+    runCommand(undefined, options);
+  } else {
+    program.parse();
+  }
 }
