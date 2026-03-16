@@ -15,7 +15,7 @@ program
   .description('A CLI tool that orchestrates common project quality checks')
   .version('1.0.0');
 
-program.command('init').description('Initialize sncheck configuration').option('-y, --yes', 'Use all detected tools automatically').action((options: { yes?: boolean }) => {
+program.command('init').description('Initialize sncheck configuration').option('-y, --yes', 'Use all detected tools automatically').option('-f, --force', 'Overwrite existing configuration').action((options: { yes?: boolean; force?: boolean }) => {
   initCommand(options);
 });
 

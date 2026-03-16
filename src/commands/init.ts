@@ -1,15 +1,31 @@
 import chalk from 'chalk';
 import { checkbox } from '@inquirer/prompts';
+import fs from 'fs';
 import { detectTools } from '../utils/detectTools.js';
 import { writeConfig } from '../config/writeConfig.js';
 import type { Task } from '../types/index.js';
 
+const CONFIG_FILE = 'sncheck.config.js';
+
 interface InitOptions {
   yes?: boolean;
+  force?: boolean;
 }
 
 export async function initCommand(options?: InitOptions): Promise<void> {
-  console.log(chalk.blue('Initializing sncheck configuration...\n'));
+  const configExists = fs.existsSync(CONFIG_FILE);
+
+  if (configExists && !options?.force) {
+    console.log(chalk.yellow(`Config file "${CONFIG_FILE}" already exists.`));
+    console.log(chalk.blue('Use --force to overwrite.'));
+    return;
+  }
+
+  if (configExists && options?.force) {
+    console.log(chalk.yellow(`Overwriting existing "${CONFIG_FILE}"...\n`));
+  } else {
+    console.log(chalk.blue('Initializing sncheck configuration...\n'));
+  }
 
   const detectedProviders = detectTools();
 
