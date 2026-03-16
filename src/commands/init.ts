@@ -61,14 +61,14 @@ export async function initCommand(options?: InitOptions): Promise<void> {
         choices,
         theme: {
           icon: {
-            checked: '✓',
-            unchecked: '◯',
-            cursor: chalk.yellow('❯') + ' ',
+            checked: ' ✓',
+            unchecked: ' ◯',
+            cursor: chalk.yellow('❯'),
           },
           prefix: {
             checked: '  ',
             unchecked: '  ',
-            focused: '',
+            focused: '  ',
           },
         },
       });
