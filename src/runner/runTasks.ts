@@ -13,6 +13,7 @@ interface RunnerOptions {
 interface RunResult {
   passed: number;
   failed: number;
+  timedOut: number;
   allPassed: boolean;
   errors: TaskError[];
 }
@@ -118,10 +119,12 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
     const err = error as Error;
     const timedOut = err.message?.includes('Timed out');
-    if (!verbose) {
-      process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
-      if (timedOut) {
-        process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
+    if (timedOut) {
+      process.stdout.write('\r' + chalk.yellow('⊗') + ' ' + taskLine + '  ' + duration + '\n');
+      process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
+    } else {
+      if (!verbose) {
+        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
       }
     }
     return { success: false, output: String(error), timedOut };
@@ -147,6 +150,7 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
+  let timedOut = 0;
   const errors: TaskError[] = [];
 
   for (const task of tasks) {
@@ -154,8 +158,13 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
     if (result.success) {
       passed++;
     } else {
-      failed++;
-      errors.push({ task: task.name, output: result.output });
+      if (result.timedOut) {
+        timedOut++;
+        errors.push({ task: task.name, output: result.output });
+      } else {
+        failed++;
+        errors.push({ task: task.name, output: result.output });
+      }
       if (!continueOnError) {
         break;
       }
@@ -165,17 +174,21 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   process.stdout.write('\n');
-  if (failed === 0) {
-    process.stdout.write(chalk.green(`✓ ${passed} passed`) + `  (${totalTime})` + '\n');
-  } else {
-    process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
+  let summary = chalk.green(`✓ ${passed} passed`);
+  if (timedOut > 0) {
+    summary += '  ' + chalk.yellow(`⊗ ${timedOut} timed out`);
   }
+  if (failed > 0) {
+    summary += '  ' + chalk.red(`✗ ${failed} failed`);
+  }
+  summary += `  (${totalTime})`;
+  process.stdout.write(summary + '\n');
 
   if (errors.length > 0 && !verbose) {
     await showErrorsPrompt(errors);
   }
 
-  return { passed, failed, allPassed: failed === 0, errors };
+  return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
 }
 
 async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
@@ -186,7 +199,7 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     title: string;
     paddedName: string;
     paddedCmd: string;
-    status: 'running' | 'success' | 'failed';
+    status: 'running' | 'success' | 'failed' | 'timedOut';
     duration?: string;
     output?: string;
   }
@@ -242,9 +255,14 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
       } catch (error) {
         const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
         state.duration = duration;
-        state.status = 'failed';
         const err = error as Error;
-        state.output = err.message?.includes('Timed out') ? err.message : String(error);
+        if (err.message?.includes('Timed out')) {
+          state.status = 'timedOut';
+          state.output = err.message;
+        } else {
+          state.status = 'failed';
+          state.output = String(error);
+        }
       }
     })();
   });
@@ -257,6 +275,13 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
   for (const state of taskStates) {
     if (state.status === 'success') {
       process.stdout.write(chalk.green('✓') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+    } else if (state.status === 'timedOut') {
+      process.stdout.write(chalk.yellow('⊗') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      if (verbose && state.output) {
+        const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
+        process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+        process.stdout.write(indentedOutput + '\n');
+      }
     } else {
       process.stdout.write(chalk.red('✗') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
       if (verbose && state.output) {
@@ -268,21 +293,26 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
   }
 
   const passed = taskStates.filter(s => s.status === 'success').length;
+  const timedOut = taskStates.filter(s => s.status === 'timedOut').length;
   const failed = taskStates.filter(s => s.status === 'failed').length;
   const errors: TaskError[] = taskStates
-    .filter(s => s.status === 'failed')
+    .filter(s => s.status === 'failed' || s.status === 'timedOut')
     .map(s => ({ task: s.task.name, output: s.output || '' }));
 
   process.stdout.write('\n');
-  if (failed === 0) {
-    process.stdout.write(chalk.green(`✓ ${passed} passed`) + `  (${totalTime})` + '\n');
-  } else {
-    process.stdout.write(chalk.green(`✓ ${passed} passed`) + '  ' + chalk.red(`✗ ${failed} failed`) + `  (${totalTime})` + '\n');
+  let summary = chalk.green(`✓ ${passed} passed`);
+  if (timedOut > 0) {
+    summary += '  ' + chalk.yellow(`⊗ ${timedOut} timed out`);
   }
+  if (failed > 0) {
+    summary += '  ' + chalk.red(`✗ ${failed} failed`);
+  }
+  summary += `  (${totalTime})`;
+  process.stdout.write(summary + '\n');
 
   if (errors.length > 0 && !verbose) {
     await showErrorsPrompt(errors);
   }
 
-  return { passed, failed, allPassed: failed === 0, errors };
+  return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
 }
