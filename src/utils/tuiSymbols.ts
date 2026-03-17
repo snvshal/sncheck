@@ -7,9 +7,9 @@ export const tuiSymbols = {
     disabledUnchecked: '○',
   },
   prefix: {
-    idle: '›',
-    done: '✔',
-    canceled: '✖',
+    idle: '>',
+    done: '[ok]',
+    canceled: '[x]',
   },
   status: {
     success: '✓',
