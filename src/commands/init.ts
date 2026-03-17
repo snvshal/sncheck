@@ -61,6 +61,7 @@ export async function initCommand(options?: InitOptions): Promise<void> {
     const success = chalk.hex('#34d399'); // emerald
     const muted = chalk.hex('#94a3b8'); // slate
     const dim = chalk.hex('#64748b'); // slate dark
+    const info = chalk.hex('#fbbf24'); // amber
     const cursor = accent(tuiSymbols.checkbox.cursor);
 
     try {
@@ -88,7 +89,19 @@ export async function initCommand(options?: InitOptions): Promise<void> {
             description: (text: string) => muted(`  ${text}`),
             disabled: (text: string) => dim(text),
             keysHelpTip: (keys: [string, string][]) =>
-              muted(keys.map(([key, action]) => `${chalk.bold(key)} ${action}`).join(tuiSymbols.helpSeparator)),
+              keys
+                .map(([key, action]) => {
+                  const paintedKey =
+                    key === 'space'
+                      ? info(`[${key}]`)
+                      : key === 'enter' || key === 'return'
+                        ? success('⏎')
+                        : key.includes('arrow')
+                          ? accent('↑↓')
+                          : accent(chalk.bold(key));
+                  return `${paintedKey} ${muted(action)}`;
+                })
+                .join(dim(tuiSymbols.helpSeparator)),
           },
         },
       });
