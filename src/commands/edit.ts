@@ -26,6 +26,9 @@ export async function editCommand(): Promise<void> {
       }
       return true;
     },
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   const taskIndex = tasks.findIndex((t) => t.name === selectedName);
@@ -46,6 +49,9 @@ export async function editCommand(): Promise<void> {
       }
       return true;
     },
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   const newCmd = await input({
@@ -57,11 +63,17 @@ export async function editCommand(): Promise<void> {
       }
       return true;
     },
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   const newDescription = await input({
     message: 'Description (or press Enter to keep current):',
     default: task.description || '',
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   tasks[taskIndex] = {
