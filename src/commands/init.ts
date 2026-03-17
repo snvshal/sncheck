@@ -3,6 +3,7 @@ import { checkbox } from '@inquirer/prompts';
 import type { Status } from '@inquirer/core';
 import fs from 'fs';
 import { detectTools } from '../utils/detectTools.js';
+import { statusLine } from '../utils/statusLine.js';
 import { tuiSymbols } from '../utils/tuiSymbols.js';
 import { writeConfig } from '../config/writeConfig.js';
 import type { Task } from '../types/index.js';
@@ -23,9 +24,7 @@ export async function initCommand(options?: InitOptions): Promise<void> {
     return;
   }
 
-  if (configExists && options?.force) {
-    console.log(chalk.yellow(`Overwriting existing "${CONFIG_FILE}"...\n`));
-  } else {
+  if (!configExists || !options?.force) {
     console.log(chalk.blue('Initializing sncheck configuration...\n'));
   }
 
@@ -110,7 +109,11 @@ export async function initCommand(options?: InitOptions): Promise<void> {
   }
 
   if (selectedTasks.length > 0) {
+    if (configExists && options?.force) {
+      statusLine.show(chalk.yellow(`Overwriting existing "${CONFIG_FILE}"...`));
+    }
     writeConfig(selectedTasks);
+    statusLine.clear();
     console.log(chalk.green(`Configuration written to sncheck.config.js`));
     console.log(chalk.blue("Run 'sncheck' to execute all tasks"));
   } else {

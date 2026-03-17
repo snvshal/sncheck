@@ -9,6 +9,7 @@ interface RunnerOptions {
   continue?: boolean;
   verbose?: boolean;
   timeout?: number;
+  onStartOutput?: () => void;
 }
 
 interface RunResult {
@@ -135,7 +136,7 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 }
 
 export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Promise<RunResult> {
-  const { parallel = false } = options;
+  const { parallel = false, onStartOutput } = options;
   const nameWidth = Math.max(...tasks.map((t) => t.name.length));
   const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
   const continueOnError = options?.continue ?? false;
@@ -143,20 +144,36 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const timeout = options?.timeout;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
+    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
+  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
 }
 
-async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
+async function runTasksSequential(
+  tasks: Task[],
+  nameWidth: number,
+  cmdWidth: number,
+  continueOnError: boolean,
+  verbose: boolean,
+  timeout?: number,
+  onStartOutput?: () => void,
+): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
   let timedOut = 0;
   const errors: TaskError[] = [];
+  let didStartOutput = false;
+
+  const startOutput = (): void => {
+    if (didStartOutput) return;
+    didStartOutput = true;
+    onStartOutput?.();
+  };
 
   for (const task of tasks) {
+    startOutput();
     const result = await runSingleTask(task, nameWidth, cmdWidth, verbose, timeout);
     if (result.success) {
       passed++;
@@ -194,7 +211,15 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
 }
 
-async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
+async function runTasksParallel(
+  tasks: Task[],
+  nameWidth: number,
+  cmdWidth: number,
+  _continueOnError: boolean,
+  verbose: boolean,
+  timeout?: number,
+  onStartOutput?: () => void,
+): Promise<RunResult> {
   const startTime = Date.now();
 
   interface TaskState {
@@ -221,6 +246,7 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     };
   });
 
+  onStartOutput?.();
   process.stdout.write('\n');
   for (const state of taskStates) {
     process.stdout.write(tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n');
