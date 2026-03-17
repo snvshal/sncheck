@@ -1,4 +1,4 @@
-import { writeFileSync, existsSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { Task } from '../types/index.js';
 
@@ -71,7 +71,7 @@ export function addTaskToConfig(task: Task): void {
     return;
   }
 
-  const existingContent = require('fs').readFileSync(configPath, 'utf-8');
+  const existingContent = readFileSync(configPath, 'utf-8');
   const isJs = configPath.endsWith('.js');
 
   if (isJs) {
@@ -84,13 +84,13 @@ export function addTaskToConfig(task: Task): void {
           /export const tasks = \[[\s\S]*?\]/,
           newContent
         );
-        require('fs').writeFileSync(configPath, finalContent, 'utf-8');
+        writeFileSync(configPath, finalContent, 'utf-8');
       } else {
         const newContent = existingContent.replace(
           /export const tasks = \[/,
           `export const tasks = [\n  ${content},`
         );
-        require('fs').writeFileSync(configPath, newContent, 'utf-8');
+        writeFileSync(configPath, newContent, 'utf-8');
       }
       return;
     }
@@ -104,13 +104,13 @@ export function addTaskToConfig(task: Task): void {
           /export const tasks: Task\[\] = \[[\s\S]*?\]/,
           newContent
         );
-        require('fs').writeFileSync(configPath, finalContent, 'utf-8');
+        writeFileSync(configPath, finalContent, 'utf-8');
       } else {
         const newContent = existingContent.replace(
           /export const tasks: Task\[\] = \[/,
           `export const tasks: Task[] = [\n  ${content},`
         );
-        require('fs').writeFileSync(configPath, newContent, 'utf-8');
+        writeFileSync(configPath, newContent, 'utf-8');
       }
       return;
     }
