@@ -7,6 +7,7 @@ import { addCommand } from './commands/add.js';
 import { editCommand } from './commands/edit.js';
 import { removeCommand } from './commands/remove.js';
 import { watchCommand } from './commands/watch.js';
+import { listCommand } from './commands/list.js';
 
 const program = new Command();
 
@@ -39,6 +40,8 @@ program.command('remove').description('Remove a task').action(removeCommand);
 
 program.command('watch').description('Run tasks in watch mode').action(watchCommand);
 
+program.command('list').description('List all tasks').action(listCommand);
+
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
@@ -46,7 +49,7 @@ if (args.length === 0) {
 } else {
   const globalOptions = ['--parallel', '--continue', '--verbose', '--timeout'];
   const hasGlobalOption = args.some(arg => globalOptions.includes(arg.split('=')[0]));
-  const hasSubcommand = ['init', 'run', 'add', 'edit', 'remove', 'watch'].includes(args[0]);
+  const hasSubcommand = ['init', 'run', 'add', 'edit', 'remove', 'watch', 'list'].includes(args[0]);
 
   if (hasGlobalOption && !hasSubcommand) {
     const options: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string } = {};
