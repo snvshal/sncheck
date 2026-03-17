@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { checkbox } from '@inquirer/prompts';
+import type { Status } from '@inquirer/core';
 import fs from 'fs';
 import { detectTools } from '../utils/detectTools.js';
 import { writeConfig } from '../config/writeConfig.js';
@@ -50,10 +51,17 @@ export async function initCommand(options?: InitOptions): Promise<void> {
   } else {
     const maxNameLen = Math.max(...defaultTasks.map((t) => t.name.length));
     const choices = defaultTasks.map((t) => ({
-      name: `${t.name.padEnd(maxNameLen)}     ${t.cmd}`,
+      name: t.name,
       value: t,
       checked: true,
+      description: t.cmd,
     }));
+
+    const accent = chalk.hex('#7dd3fc'); // sky
+    const success = chalk.hex('#34d399'); // emerald
+    const muted = chalk.hex('#94a3b8'); // slate
+    const dim = chalk.hex('#64748b'); // slate dark
+    const cursor = accent('▸');
 
     try {
       const selected = await checkbox({
@@ -61,14 +69,26 @@ export async function initCommand(options?: InitOptions): Promise<void> {
         choices,
         theme: {
           icon: {
-            checked: ' ✓',
-            unchecked: ' ◯',
-            cursor: chalk.yellow('❯'),
+            checked: accent('●'),
+            unchecked: muted('○'),
+            cursor,
+            disabledChecked: dim('●'),
+            disabledUnchecked: dim('○'),
           },
           prefix: {
-            checked: '  ',
-            unchecked: '  ',
-            focused: '  ',
+            idle: accent('›'),
+            done: success('✔'),
+            canceled: dim('✖'),
+          },
+          style: {
+            message: (text: string, status: Status) =>
+              status === 'done' ? chalk.bold(text) : chalk.bold(accent(text)),
+            answer: (text: string) => chalk.hex('#e2e8f0')(text),
+            highlight: (text: string) => chalk.bold(accent(text)),
+            description: (text: string) => muted(`  ${text}`),
+            disabled: (text: string) => dim(text),
+            keysHelpTip: (keys: [string, string][]) =>
+              muted(keys.map(([key, action]) => `${chalk.bold(key)} ${action}`).join(' · ')),
           },
         },
       });
