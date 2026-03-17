@@ -12,32 +12,50 @@ export async function addCommand(): Promise<void> {
 
   const tasks = await loadConfig();
 
-  const name = await input({
-    message: 'Task name:',
-    validate: (value) => {
-      if (!value.trim()) {
-        return 'Task name is required';
-      }
-      if (tasks.some((t) => t.name === value)) {
-        return 'Task name already exists';
-      }
-      return true;
-    },
-  });
+  let name: string;
+  try {
+    name = await input({
+      message: 'Task name:',
+      validate: (value) => {
+        if (!value.trim()) {
+          return 'Task name is required';
+        }
+        if (tasks.some((t) => t.name === value)) {
+          return 'Task name already exists';
+        }
+        return true;
+      },
+    });
+  } catch {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
+  }
 
-  const cmd = await input({
-    message: 'Command:',
-    validate: (value) => {
-      if (!value.trim()) {
-        return 'Command is required';
-      }
-      return true;
-    },
-  });
+  let cmd: string;
+  try {
+    cmd = await input({
+      message: 'Command:',
+      validate: (value) => {
+        if (!value.trim()) {
+          return 'Command is required';
+        }
+        return true;
+      },
+    });
+  } catch {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
+  }
 
-  const description = await input({
-    message: 'Description (optional):',
-  });
+  let description: string;
+  try {
+    description = await input({
+      message: 'Description (optional):',
+    });
+  } catch {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
+  }
 
   const task: Task = {
     name: name.trim(),

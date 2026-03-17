@@ -26,6 +26,9 @@ export async function removeCommand(): Promise<void> {
       }
       return true;
     },
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   tasks.find((t) => t.name === selectedName);
@@ -33,6 +36,9 @@ export async function removeCommand(): Promise<void> {
   const confirmed = await confirm({
     message: `Remove task '${selectedName}'?`,
     default: false,
+  }).catch(() => {
+    console.log(chalk.yellow('\n\nCancelled.'));
+    process.exit(0);
   });
 
   if (!confirmed) {
