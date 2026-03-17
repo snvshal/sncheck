@@ -2,12 +2,14 @@ import { execa } from 'execa';
 import chalk from 'chalk';
 import readline from 'readline';
 import type { Task, TaskError } from '../types/index.js';
+import { tuiSymbols } from '../utils/tuiSymbols.js';
 
 interface RunnerOptions {
   parallel?: boolean;
   continue?: boolean;
   verbose?: boolean;
   timeout?: number;
+  onStartOutput?: () => void;
 }
 
 interface RunResult {
@@ -31,14 +33,16 @@ async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
   });
 
   process.stdout.write('\n');
-  process.stdout.write(chalk.blue('═══════════════════════ Errors ═══════════════════════\n'));
+  const headerLine = tuiSymbols.lines.thick.repeat(23);
+  const headerWidth = headerLine.length * 2 + ' Errors '.length;
+  process.stdout.write(chalk.blue(`${headerLine} Errors ${headerLine}\n`));
 
   errors.forEach((err, idx) => {
     process.stdout.write(chalk.red(`\n[${idx + 1}] ${err.task}:\n`));
     process.stdout.write(err.output + '\n');
   });
 
-  process.stdout.write(chalk.blue('\n═══════════════════════════════════════════════════════\n'));
+  process.stdout.write(chalk.blue(`\n${tuiSymbols.lines.thick.repeat(headerWidth)}\n`));
 
   rl.close();
 }
@@ -49,13 +53,13 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
   const paddedCmd = padEnd(task.cmd, cmdWidth);
 
   const taskLine = paddedName + '    ' + paddedCmd + '    ';
-  const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  const spinnerChars = tuiSymbols.spinner;
   let spinnerIndex = 0;
 
   let spinnerInterval: ReturnType<typeof setInterval> | undefined;
   if (!verbose) {
     spinnerInterval = setInterval(() => {
-      process.stdout.write('\r' + chalk.yellow(spinnerChars[spinnerIndex % 10]) + ' ' + taskLine);
+      process.stdout.write('\r' + chalk.yellow(spinnerChars[spinnerIndex % spinnerChars.length]) + ' ' + taskLine);
       spinnerIndex++;
     }, 100);
   }
@@ -88,21 +92,21 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 
     if (verbose) {
       if (result.failed) {
-        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
         if (result.stdout || result.stderr) {
           const output = result.stderr || result.stdout || '';
           const indentedOutput = output.split('\n').map(line => '  ' + line).join('\n');
-          process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+          process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
           process.stdout.write(indentedOutput + '\n');
         }
       } else {
-        process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write('\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n');
       }
     }
 
     if (result.failed) {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
         if (result.shortMessage) {
           process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
         }
@@ -110,7 +114,7 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
       return { success: false, output: result.stderr || result.stdout || result.shortMessage || '', timedOut: false };
     } else {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.green('✓') + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write('\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n');
       }
       return { success: true, output: '', timedOut: false };
     }
@@ -120,11 +124,11 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
     const err = error as Error;
     const timedOut = err.message?.includes('Timed out');
     if (timedOut) {
-      process.stdout.write('\r' + chalk.yellow('⊗') + ' ' + taskLine + '  ' + duration + '\n');
+      process.stdout.write('\r' + chalk.yellow(tuiSymbols.status.timedOut) + ' ' + taskLine + '  ' + duration + '\n');
       process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
     } else {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.red('✗') + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
       }
     }
     return { success: false, output: String(error), timedOut };
@@ -132,7 +136,7 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 }
 
 export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Promise<RunResult> {
-  const { parallel = false } = options;
+  const { parallel = false, onStartOutput } = options;
   const nameWidth = Math.max(...tasks.map((t) => t.name.length));
   const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
   const continueOnError = options?.continue ?? false;
@@ -140,20 +144,36 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const timeout = options?.timeout;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
+    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout);
+  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
 }
 
-async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: number, continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
+async function runTasksSequential(
+  tasks: Task[],
+  nameWidth: number,
+  cmdWidth: number,
+  continueOnError: boolean,
+  verbose: boolean,
+  timeout?: number,
+  onStartOutput?: () => void,
+): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
   let failed = 0;
   let timedOut = 0;
   const errors: TaskError[] = [];
+  let didStartOutput = false;
+
+  const startOutput = (): void => {
+    if (didStartOutput) return;
+    didStartOutput = true;
+    onStartOutput?.();
+  };
 
   for (const task of tasks) {
+    startOutput();
     const result = await runSingleTask(task, nameWidth, cmdWidth, verbose, timeout);
     if (result.success) {
       passed++;
@@ -174,12 +194,12 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   process.stdout.write('\n');
-  let summary = chalk.green(`✓ ${passed} passed`);
+  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`);
   if (timedOut > 0) {
-    summary += '  ' + chalk.yellow(`⊗ ${timedOut} timed out`);
+    summary += '  ' + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`);
   }
   if (failed > 0) {
-    summary += '  ' + chalk.red(`✗ ${failed} failed`);
+    summary += '  ' + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`);
   }
   summary += `  (${totalTime})`;
   process.stdout.write(summary + '\n');
@@ -191,7 +211,15 @@ async function runTasksSequential(tasks: Task[], nameWidth: number, cmdWidth: nu
   return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
 }
 
-async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: number, _continueOnError: boolean, verbose: boolean, timeout?: number): Promise<RunResult> {
+async function runTasksParallel(
+  tasks: Task[],
+  nameWidth: number,
+  cmdWidth: number,
+  _continueOnError: boolean,
+  verbose: boolean,
+  timeout?: number,
+  onStartOutput?: () => void,
+): Promise<RunResult> {
   const startTime = Date.now();
 
   interface TaskState {
@@ -218,9 +246,10 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     };
   });
 
+  onStartOutput?.();
   process.stdout.write('\n');
   for (const state of taskStates) {
-    process.stdout.write('○ ' + state.paddedName + '    ' + state.paddedCmd + '\n');
+    process.stdout.write(tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n');
   }
   process.stdout.write(chalk.blue('\nRunning in parallel...\n'));
 
@@ -274,19 +303,19 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
   process.stdout.write('\n');
   for (const state of taskStates) {
     if (state.status === 'success') {
-      process.stdout.write(chalk.green('✓') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(chalk.green(tuiSymbols.status.success) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
     } else if (state.status === 'timedOut') {
-      process.stdout.write(chalk.yellow('⊗') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(chalk.yellow(tuiSymbols.status.timedOut) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
       if (verbose && state.output) {
         const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
-        process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+        process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
         process.stdout.write(indentedOutput + '\n');
       }
     } else {
-      process.stdout.write(chalk.red('✗') + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(chalk.red(tuiSymbols.status.failed) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
       if (verbose && state.output) {
         const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
-        process.stdout.write('  ' + chalk.gray('─'.repeat(50)) + '\n');
+        process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
         process.stdout.write(indentedOutput + '\n');
       }
     }
@@ -300,12 +329,12 @@ async function runTasksParallel(tasks: Task[], nameWidth: number, cmdWidth: numb
     .map(s => ({ task: s.task.name, output: s.output || '' }));
 
   process.stdout.write('\n');
-  let summary = chalk.green(`✓ ${passed} passed`);
+  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`);
   if (timedOut > 0) {
-    summary += '  ' + chalk.yellow(`⊗ ${timedOut} timed out`);
+    summary += '  ' + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`);
   }
   if (failed > 0) {
-    summary += '  ' + chalk.red(`✗ ${failed} failed`);
+    summary += '  ' + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`);
   }
   summary += `  (${totalTime})`;
   process.stdout.write(summary + '\n');

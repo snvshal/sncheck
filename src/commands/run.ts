@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { loadConfig, getTaskNames, findTaskByName } from '../config/loadConfig.js';
 import { runTasks } from '../runner/runTasks.js';
+import { statusLine } from '../utils/statusLine.js';
 import type { Task } from '../types/index.js';
 
 export async function runCommand(taskNames?: string[], options?: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string }): Promise<void> {
@@ -32,9 +33,16 @@ export async function runCommand(taskNames?: string[], options?: { parallel?: bo
   const continueOnError = options?.continue ?? false;
   const verbose = options?.verbose ?? false;
   const timeout = options?.timeout ? parseInt(options.timeout, 10) : undefined;
-  console.log(chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...\n`));
+  statusLine.show(chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...`));
 
-  const result = await runTasks(tasksToRun, { parallel, continue: continueOnError, verbose, timeout });
+  const result = await runTasks(tasksToRun, {
+    parallel,
+    continue: continueOnError,
+    verbose,
+    timeout,
+    onStartOutput: () => statusLine.clear(),
+  });
+  statusLine.clear();
 
   process.exit(result.allPassed ? 0 : 1);
 }

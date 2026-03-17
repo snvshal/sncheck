@@ -4,6 +4,10 @@
 
 `sncheck` is a CLI tool that orchestrates common project quality checks (linting, testing, formatting). It manages tasks defined in a configuration file and provides commands to run, add, edit, remove, and watch these tasks.
 
+## About
+
+This CLI favors clean, modern TUI output. Keep list/table output compact and readable, prefer truncation with `...` over wrapping, and use consistent accent/muted colors where theming is supported.
+
 ## Commands
 
 | Command | Description |
