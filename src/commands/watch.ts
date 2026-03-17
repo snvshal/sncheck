@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import chokidar from 'chokidar';
 import { loadConfig, configExists } from '../config/loadConfig.js';
 import { runTasks } from '../runner/runTasks.js';
+import { tuiSymbols } from '../utils/tuiSymbols.js';
 
 export async function watchCommand(): Promise<void> {
   if (!configExists()) {
@@ -32,9 +33,9 @@ export async function watchCommand(): Promise<void> {
     const success = await runTasks(tasks);
 
     if (success) {
-      console.log(chalk.green('\n✓ All tasks passed'));
+      console.log(chalk.green(`\n${tuiSymbols.status.success} All tasks passed`));
     } else {
-      console.log(chalk.red('\n✗ Some tasks failed'));
+      console.log(chalk.red(`\n${tuiSymbols.status.failed} Some tasks failed`));
     }
 
     console.log(chalk.blue('\n--- Watching for changes ---\n'));

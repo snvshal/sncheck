@@ -3,6 +3,7 @@ import { checkbox } from '@inquirer/prompts';
 import type { Status } from '@inquirer/core';
 import fs from 'fs';
 import { detectTools } from '../utils/detectTools.js';
+import { tuiSymbols } from '../utils/tuiSymbols.js';
 import { writeConfig } from '../config/writeConfig.js';
 import type { Task } from '../types/index.js';
 
@@ -61,7 +62,7 @@ export async function initCommand(options?: InitOptions): Promise<void> {
     const success = chalk.hex('#34d399'); // emerald
     const muted = chalk.hex('#94a3b8'); // slate
     const dim = chalk.hex('#64748b'); // slate dark
-    const cursor = accent('▸');
+    const cursor = accent(tuiSymbols.checkbox.cursor);
 
     try {
       const selected = await checkbox({
@@ -69,16 +70,16 @@ export async function initCommand(options?: InitOptions): Promise<void> {
         choices,
         theme: {
           icon: {
-            checked: accent('●'),
-            unchecked: muted('○'),
+            checked: accent(tuiSymbols.checkbox.checked),
+            unchecked: muted(tuiSymbols.checkbox.unchecked),
             cursor,
-            disabledChecked: dim('●'),
-            disabledUnchecked: dim('○'),
+            disabledChecked: dim(tuiSymbols.checkbox.disabledChecked),
+            disabledUnchecked: dim(tuiSymbols.checkbox.disabledUnchecked),
           },
           prefix: {
-            idle: accent('›'),
-            done: success('✔'),
-            canceled: dim('✖'),
+            idle: accent(tuiSymbols.prefix.idle),
+            done: success(tuiSymbols.prefix.done),
+            canceled: dim(tuiSymbols.prefix.canceled),
           },
           style: {
             message: (text: string, status: Status) =>
@@ -88,7 +89,7 @@ export async function initCommand(options?: InitOptions): Promise<void> {
             description: (text: string) => muted(`  ${text}`),
             disabled: (text: string) => dim(text),
             keysHelpTip: (keys: [string, string][]) =>
-              muted(keys.map(([key, action]) => `${chalk.bold(key)} ${action}`).join(' · ')),
+              muted(keys.map(([key, action]) => `${chalk.bold(key)} ${action}`).join(tuiSymbols.helpSeparator)),
           },
         },
       });
@@ -99,7 +100,7 @@ export async function initCommand(options?: InitOptions): Promise<void> {
 
       console.log(chalk.blue('Selected tools:'));
       for (const task of selectedTasks) {
-        console.log(`  ${chalk.green('✓')} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`);
+        console.log(`  ${chalk.green(tuiSymbols.status.success)} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`);
       }
       console.log('');
     } catch {
