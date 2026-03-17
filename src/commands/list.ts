@@ -14,15 +14,47 @@ export async function listCommand(): Promise<void> {
     return;
   }
 
-  console.log(chalk.bold('\nConfigured tasks:\n'));
-  console.log('  Name      Command               Description');
-  console.log('  --------  --------------------  -------------------');
+  const accent = chalk.hex('#7dd3fc');
+  const muted = chalk.hex('#94a3b8');
+  const dim = chalk.hex('#64748b');
+
+  const truncate = (value: string, width: number): string => {
+    if (value.length <= width) return value;
+    if (width <= 3) return value.slice(0, width);
+    return `${value.slice(0, width - 3)}...`;
+  };
+
+  const nameWidth = Math.min(22, Math.max(4, ...tasks.map((t) => t.name.length)));
+  const cmdWidth = Math.min(44, Math.max(7, ...tasks.map((t) => t.cmd.length)));
+  const descWidth = Math.min(
+    40,
+    Math.max(11, ...tasks.map((t) => (t.description ? t.description.length : 1))),
+  );
+  const gap = '   ';
+
+  console.log(chalk.bold('\nConfigured tasks\n'));
+  console.log(
+    `  ${accent('Name'.padEnd(nameWidth))}${gap}${accent(
+      'Command'.padEnd(cmdWidth),
+    )}${gap}${accent(
+      'Description'.padEnd(descWidth),
+    )}`,
+  );
+  console.log(
+    muted(
+      `  ${'-'.repeat(nameWidth)}${gap}${'-'.repeat(cmdWidth)}${gap}${'-'.repeat(descWidth)}`,
+    ),
+  );
 
   for (const task of tasks) {
-    const name = task.name.padEnd(8);
-    const cmd = task.cmd.substring(0, 20).padEnd(20);
-    const description = task.description || '-';
-    console.log(`  ${name}  ${cmd}  ${description}`);
+    const name = truncate(task.name, nameWidth).padEnd(nameWidth);
+    const cmd = truncate(task.cmd, cmdWidth).padEnd(cmdWidth);
+    const description = truncate(task.description || '-', descWidth).padEnd(descWidth);
+    console.log(
+      `  ${chalk.bold(name)}${gap}${muted(cmd)}${gap}${
+        task.description ? description : dim(description)
+      }`,
+    );
   }
 
   console.log('');
