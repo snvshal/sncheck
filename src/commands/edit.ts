@@ -1,88 +1,90 @@
-import chalk from 'chalk';
-import { input } from '@inquirer/prompts';
-import { loadConfig, configExists } from '../config/loadConfig.js';
-import { writeConfig } from '../config/writeConfig.js';
+import chalk from "chalk"
+import { input } from "@inquirer/prompts"
+import { loadConfig, configExists } from "../config/loadConfig.js"
+import { writeConfig } from "../config/writeConfig.js"
 
 export async function editCommand(): Promise<void> {
   if (!configExists()) {
-    console.log(chalk.yellow("No configuration found. Run 'sncheck init' first."));
-    process.exit(1);
+    console.log(
+      chalk.yellow("No configuration found. Run 'sncheck init' first.")
+    )
+    process.exit(1)
   }
 
-  const tasks = await loadConfig();
+  const tasks = await loadConfig()
 
   if (tasks.length === 0) {
-    console.log(chalk.yellow('No tasks to edit.'));
-    process.exit(0);
+    console.log(chalk.yellow("No tasks to edit."))
+    process.exit(0)
   }
 
-  const taskNames = tasks.map((t) => t.name);
+  const taskNames = tasks.map((t) => t.name)
 
   const selectedName = await input({
-    message: 'Enter task name to edit:',
+    message: "Enter task name to edit:",
     validate: (value) => {
       if (!taskNames.includes(value)) {
-        return `Task '${value}' not found. Available: ${taskNames.join(', ')}`;
+        return `Task '${value}' not found. Available: ${taskNames.join(", ")}`
       }
-      return true;
-    },
+      return true
+    }
   }).catch(() => {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
-  });
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
+  })
 
-  const taskIndex = tasks.findIndex((t) => t.name === selectedName);
-  const task = tasks[taskIndex];
+  const taskIndex = tasks.findIndex((t) => t.name === selectedName)
+  const task = tasks[taskIndex]
 
-  console.log(chalk.blue(`\nEditing task: ${task.name}`));
-  console.log(`  Current command: ${task.cmd}`);
+  console.log(chalk.blue(`\nEditing task: ${task.name}`))
+  console.log(`  Current command: ${task.cmd}`)
   if (task.description) {
-    console.log(`  Current description: ${task.description}`);
+    console.log(`  Current description: ${task.description}`)
   }
 
   const newName = await input({
-    message: 'New name (or press Enter to keep current):',
+    message: "New name (or press Enter to keep current):",
     default: task.name,
     validate: (value) => {
       if (value && value !== task.name && tasks.some((t) => t.name === value)) {
-        return 'Task name already exists';
+        return "Task name already exists"
       }
-      return true;
-    },
+      return true
+    }
   }).catch(() => {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
-  });
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
+  })
 
   const newCmd = await input({
-    message: 'New command (or press Enter to keep current):',
+    message: "New command (or press Enter to keep current):",
     default: task.cmd,
     validate: (value) => {
       if (!value.trim()) {
-        return 'Command is required';
+        return "Command is required"
       }
-      return true;
-    },
+      return true
+    }
   }).catch(() => {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
-  });
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
+  })
 
   const newDescription = await input({
-    message: 'Description (or press Enter to keep current):',
-    default: task.description || '',
+    message: "Description (or press Enter to keep current):",
+    default: task.description || ""
   }).catch(() => {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
-  });
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
+  })
 
   tasks[taskIndex] = {
     name: newName.trim() || task.name,
     cmd: newCmd.trim() || task.cmd,
-    description: newDescription.trim() || undefined,
-  };
+    description: newDescription.trim() || undefined
+  }
 
-  writeConfig(tasks);
+  writeConfig(tasks)
 
-  console.log(chalk.green('\nTask updated successfully!'));
+  console.log(chalk.green("\nTask updated successfully!"))
 }

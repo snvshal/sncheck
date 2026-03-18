@@ -1,120 +1,122 @@
-import { writeFileSync, existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
-import type { Task } from '../types/index.js';
+import { writeFileSync, existsSync, readFileSync } from "fs"
+import { resolve } from "path"
+import type { Task } from "../types/index.js"
 
-const CONFIG_FILES = ['sncheck.config.ts', 'sncheck.config.js'];
+const CONFIG_FILES = ["sncheck.config.ts", "sncheck.config.js"]
 
 export function getConfigPath(): string | undefined {
   for (const file of CONFIG_FILES) {
-    const path = resolve(process.cwd(), file);
+    const path = resolve(process.cwd(), file)
     if (existsSync(path)) {
-      return path;
+      return path
     }
   }
-  return resolve(process.cwd(), 'sncheck.config.js');
+  return resolve(process.cwd(), "sncheck.config.js")
 }
 
 export function getConfigPathExisting(): string | undefined {
   for (const file of CONFIG_FILES) {
-    const path = resolve(process.cwd(), file);
+    const path = resolve(process.cwd(), file)
     if (existsSync(path)) {
-      return path;
+      return path
     }
   }
-  return undefined;
+  return undefined
 }
 
 export function writeConfig(tasks: Task[]): void {
-  const configPath = getConfigPath()!;
-  const isJs = configPath.endsWith('.js');
+  const configPath = getConfigPath()!
+  const isJs = configPath.endsWith(".js")
 
   const tasksContent = tasks
     .map((task) => {
       const description = task.description
         ? `\n    description: "${task.description}",`
-        : '';
+        : ""
       return `  {
     name: "${task.name}",
     cmd: "${task.cmd}",${description}
-  }`;
+  }`
     })
-    .join(',\n');
+    .join(",\n")
 
-  let configContent: string;
+  let configContent: string
   if (isJs) {
     configContent = `/** @type {import('sncheck').Task[]} */
 export const tasks = [
 ${tasksContent}
 ]
-`;
+`
   } else {
     configContent = `import type { Task } from "sncheck";
 
 export const tasks: Task[] = [
 ${tasksContent}
 ]
-`;
+`
   }
 
-  writeFileSync(configPath, configContent, 'utf-8');
+  writeFileSync(configPath, configContent, "utf-8")
 }
 
 export function addTaskToConfig(task: Task): void {
-  const configPath = getConfigPathExisting();
+  const configPath = getConfigPathExisting()
   const content = `{
     name: "${task.name}",
-    cmd: "${task.cmd}",${task.description ? `\n    description: "${task.description}",` : ''}
-  }`;
+    cmd: "${task.cmd}",${task.description ? `\n    description: "${task.description}",` : ""}
+  }`
 
   if (!configPath) {
-    writeConfig([task]);
-    return;
+    writeConfig([task])
+    return
   }
 
-  const existingContent = readFileSync(configPath, 'utf-8');
-  const isJs = configPath.endsWith('.js');
+  const existingContent = readFileSync(configPath, "utf-8")
+  const isJs = configPath.endsWith(".js")
 
   if (isJs) {
-    const match = existingContent.match(/export const tasks = \[([\s\S]*?)\]/);
+    const match = existingContent.match(/export const tasks = \[([\s\S]*?)\]/)
     if (match) {
-      const tasksContent = match[1].trim();
-      if (tasksContent === '') {
-        const newContent = `export const tasks = [\n  ${content}\n]`;
+      const tasksContent = match[1].trim()
+      if (tasksContent === "") {
+        const newContent = `export const tasks = [\n  ${content}\n]`
         const finalContent = existingContent.replace(
           /export const tasks = \[[\s\S]*?\]/,
           newContent
-        );
-        writeFileSync(configPath, finalContent, 'utf-8');
+        )
+        writeFileSync(configPath, finalContent, "utf-8")
       } else {
         const newContent = existingContent.replace(
           /export const tasks = \[/,
           `export const tasks = [\n  ${content},`
-        );
-        writeFileSync(configPath, newContent, 'utf-8');
+        )
+        writeFileSync(configPath, newContent, "utf-8")
       }
-      return;
+      return
     }
   } else {
-    const match = existingContent.match(/export const tasks: Task\[\] = \[([\s\S]*?)\]/);
+    const match = existingContent.match(
+      /export const tasks: Task\[\] = \[([\s\S]*?)\]/
+    )
     if (match) {
-      const tasksContent = match[1].trim();
-      if (tasksContent === '') {
-        const newContent = `export const tasks: Task[] = [\n  ${content}\n]`;
+      const tasksContent = match[1].trim()
+      if (tasksContent === "") {
+        const newContent = `export const tasks: Task[] = [\n  ${content}\n]`
         const finalContent = existingContent.replace(
           /export const tasks: Task\[\] = \[[\s\S]*?\]/,
           newContent
-        );
-        writeFileSync(configPath, finalContent, 'utf-8');
+        )
+        writeFileSync(configPath, finalContent, "utf-8")
       } else {
         const newContent = existingContent.replace(
           /export const tasks: Task\[\] = \[/,
           `export const tasks: Task[] = [\n  ${content},`
-        );
-        writeFileSync(configPath, newContent, 'utf-8');
+        )
+        writeFileSync(configPath, newContent, "utf-8")
       }
-      return;
+      return
     }
   }
 
-  writeConfig([task]);
+  writeConfig([task])
 }
