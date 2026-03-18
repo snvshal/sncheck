@@ -1,69 +1,71 @@
-import chalk from 'chalk';
-import { input } from '@inquirer/prompts';
-import { loadConfig, configExists } from '../config/loadConfig.js';
-import { addTaskToConfig } from '../config/writeConfig.js';
-import type { Task } from '../types/index.js';
+import chalk from "chalk"
+import { input } from "@inquirer/prompts"
+import { loadConfig, configExists } from "../config/loadConfig.js"
+import { addTaskToConfig } from "../config/writeConfig.js"
+import type { Task } from "../types/index.js"
 
 export async function addCommand(): Promise<void> {
   if (!configExists()) {
-    console.log(chalk.yellow("No configuration found. Run 'sncheck init' first."));
-    process.exit(1);
+    console.log(
+      chalk.yellow("No configuration found. Run 'sncheck init' first.")
+    )
+    process.exit(1)
   }
 
-  const tasks = await loadConfig();
+  const tasks = await loadConfig()
 
-  let name: string;
+  let name: string
   try {
     name = await input({
-      message: 'Task name:',
+      message: "Task name:",
       validate: (value) => {
         if (!value.trim()) {
-          return 'Task name is required';
+          return "Task name is required"
         }
         if (tasks.some((t) => t.name === value)) {
-          return 'Task name already exists';
+          return "Task name already exists"
         }
-        return true;
-      },
-    });
+        return true
+      }
+    })
   } catch {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
   }
 
-  let cmd: string;
+  let cmd: string
   try {
     cmd = await input({
-      message: 'Command:',
+      message: "Command:",
       validate: (value) => {
         if (!value.trim()) {
-          return 'Command is required';
+          return "Command is required"
         }
-        return true;
-      },
-    });
+        return true
+      }
+    })
   } catch {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
   }
 
-  let description: string;
+  let description: string
   try {
     description = await input({
-      message: 'Description (optional):',
-    });
+      message: "Description (optional):"
+    })
   } catch {
-    console.log(chalk.yellow('\n\nCancelled.'));
-    process.exit(0);
+    console.log(chalk.yellow("\n\nCancelled."))
+    process.exit(0)
   }
 
   const task: Task = {
     name: name.trim(),
     cmd: cmd.trim(),
-    description: description.trim() || undefined,
-  };
+    description: description.trim() || undefined
+  }
 
-  addTaskToConfig(task);
+  addTaskToConfig(task)
 
-  console.log(chalk.green(`\nTask '${name}' added successfully!`));
+  console.log(chalk.green(`\nTask '${name}' added successfully!`))
 }
