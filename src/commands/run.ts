@@ -4,7 +4,10 @@ import { runTasks } from '../runner/runTasks.js';
 import { statusLine } from '../utils/statusLine.js';
 import type { Task } from '../types/index.js';
 
-export async function runCommand(taskNames?: string[], options?: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string }): Promise<void> {
+export async function runCommand(
+  taskNames?: string[],
+  options?: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string }
+): Promise<void> {
   const tasks = await loadConfig();
 
   if (tasks.length === 0) {
@@ -33,7 +36,9 @@ export async function runCommand(taskNames?: string[], options?: { parallel?: bo
   const continueOnError = options?.continue ?? false;
   const verbose = options?.verbose ?? false;
   const timeout = options?.timeout ? parseInt(options.timeout, 10) : undefined;
-  statusLine.show(chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...`));
+  statusLine.show(
+    chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...`)
+  );
 
   const result = await runTasks(tasksToRun, {
     parallel,

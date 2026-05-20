@@ -88,7 +88,11 @@ export async function initCommand(options?: InitOptions): Promise<void> {
             description: (text: string) => muted(`  ${text}`),
             disabled: (text: string) => dim(text),
             keysHelpTip: (keys: [string, string][]) =>
-              muted(keys.map(([key, action]) => `${chalk.bold(key)} ${action}`).join(tuiSymbols.helpSeparator)),
+              muted(
+                keys
+                  .map(([key, action]) => `${chalk.bold(key)} ${action}`)
+                  .join(tuiSymbols.helpSeparator)
+              ),
           },
         },
       });
@@ -99,7 +103,9 @@ export async function initCommand(options?: InitOptions): Promise<void> {
 
       console.log(chalk.blue('Selected tools:'));
       for (const task of selectedTasks) {
-        console.log(`  ${chalk.green(tuiSymbols.status.success)} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`);
+        console.log(
+          `  ${chalk.green(tuiSymbols.status.success)} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`
+        );
       }
       console.log('');
     } catch {

@@ -47,7 +47,13 @@ async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
   rl.close();
 }
 
-async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, verbose: boolean, timeout?: number): Promise<{ success: boolean; output: string; timedOut: boolean }> {
+async function runSingleTask(
+  task: Task,
+  nameWidth: number,
+  cmdWidth: number,
+  verbose: boolean,
+  timeout?: number
+): Promise<{ success: boolean; output: string; timedOut: boolean }> {
   const title = task.name.charAt(0).toUpperCase() + task.name.slice(1);
   const paddedName = padEnd(title, nameWidth);
   const paddedCmd = padEnd(task.cmd, cmdWidth);
@@ -59,7 +65,9 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
   let spinnerInterval: ReturnType<typeof setInterval> | undefined;
   if (!verbose) {
     spinnerInterval = setInterval(() => {
-      process.stdout.write('\r' + chalk.yellow(spinnerChars[spinnerIndex % spinnerChars.length]) + ' ' + taskLine);
+      process.stdout.write(
+        '\r' + chalk.yellow(spinnerChars[spinnerIndex % spinnerChars.length]) + ' ' + taskLine
+      );
       spinnerIndex++;
     }, 100);
   }
@@ -68,7 +76,7 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 
   try {
     const [command, ...args] = task.cmd.split(' ');
-    
+
     const execaOptions = {
       shell: true,
       stdio: 'pipe' as const,
@@ -79,9 +87,9 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
     if (timeout) {
       result = await Promise.race([
         execa(command, args, execaOptions),
-        new Promise<never>((_, reject) => 
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
-        )
+        ),
       ]);
     } else {
       result = await execa(command, args, execaOptions);
@@ -92,29 +100,44 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
 
     if (verbose) {
       if (result.failed) {
-        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write(
+          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
+        );
         if (result.stdout || result.stderr) {
           const output = result.stderr || result.stdout || '';
-          const indentedOutput = output.split('\n').map(line => '  ' + line).join('\n');
+          const indentedOutput = output
+            .split('\n')
+            .map((line) => '  ' + line)
+            .join('\n');
           process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
           process.stdout.write(indentedOutput + '\n');
         }
       } else {
-        process.stdout.write('\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write(
+          '\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n'
+        );
       }
     }
 
     if (result.failed) {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write(
+          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
+        );
         if (result.shortMessage) {
           process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
         }
       }
-      return { success: false, output: result.stderr || result.stdout || result.shortMessage || '', timedOut: false };
+      return {
+        success: false,
+        output: result.stderr || result.stdout || result.shortMessage || '',
+        timedOut: false,
+      };
     } else {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write(
+          '\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n'
+        );
       }
       return { success: true, output: '', timedOut: false };
     }
@@ -124,11 +147,15 @@ async function runSingleTask(task: Task, nameWidth: number, cmdWidth: number, ve
     const err = error as Error;
     const timedOut = err.message?.includes('Timed out');
     if (timedOut) {
-      process.stdout.write('\r' + chalk.yellow(tuiSymbols.status.timedOut) + ' ' + taskLine + '  ' + duration + '\n');
+      process.stdout.write(
+        '\r' + chalk.yellow(tuiSymbols.status.timedOut) + ' ' + taskLine + '  ' + duration + '\n'
+      );
       process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
     } else {
       if (!verbose) {
-        process.stdout.write('\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n');
+        process.stdout.write(
+          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
+        );
       }
     }
     return { success: false, output: String(error), timedOut };
@@ -144,10 +171,26 @@ export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Prom
   const timeout = options?.timeout;
 
   if (parallel) {
-    return runTasksParallel(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
+    return runTasksParallel(
+      tasks,
+      nameWidth,
+      cmdWidth,
+      continueOnError,
+      verbose,
+      timeout,
+      onStartOutput
+    );
   }
 
-  return runTasksSequential(tasks, nameWidth, cmdWidth, continueOnError, verbose, timeout, onStartOutput);
+  return runTasksSequential(
+    tasks,
+    nameWidth,
+    cmdWidth,
+    continueOnError,
+    verbose,
+    timeout,
+    onStartOutput
+  );
 }
 
 async function runTasksSequential(
@@ -157,7 +200,7 @@ async function runTasksSequential(
   continueOnError: boolean,
   verbose: boolean,
   timeout?: number,
-  onStartOutput?: () => void,
+  onStartOutput?: () => void
 ): Promise<RunResult> {
   const startTime = Date.now();
   let passed = 0;
@@ -218,7 +261,7 @@ async function runTasksParallel(
   _continueOnError: boolean,
   verbose: boolean,
   timeout?: number,
-  onStartOutput?: () => void,
+  onStartOutput?: () => void
 ): Promise<RunResult> {
   const startTime = Date.now();
 
@@ -249,7 +292,9 @@ async function runTasksParallel(
   onStartOutput?.();
   process.stdout.write('\n');
   for (const state of taskStates) {
-    process.stdout.write(tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n');
+    process.stdout.write(
+      tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n'
+    );
   }
   process.stdout.write(chalk.blue('\nRunning in parallel...\n'));
 
@@ -271,7 +316,7 @@ async function runTasksParallel(
             execa(command, args, execaOptions),
             new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
-            )
+            ),
           ]);
         } else {
           result = await execa(command, args, execaOptions);
@@ -303,30 +348,63 @@ async function runTasksParallel(
   process.stdout.write('\n');
   for (const state of taskStates) {
     if (state.status === 'success') {
-      process.stdout.write(chalk.green(tuiSymbols.status.success) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(
+        chalk.green(tuiSymbols.status.success) +
+          ' ' +
+          state.paddedName +
+          '    ' +
+          state.paddedCmd +
+          '  ' +
+          state.duration +
+          '\n'
+      );
     } else if (state.status === 'timedOut') {
-      process.stdout.write(chalk.yellow(tuiSymbols.status.timedOut) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(
+        chalk.yellow(tuiSymbols.status.timedOut) +
+          ' ' +
+          state.paddedName +
+          '    ' +
+          state.paddedCmd +
+          '  ' +
+          state.duration +
+          '\n'
+      );
       if (verbose && state.output) {
-        const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
+        const indentedOutput = state.output
+          .split('\n')
+          .map((line) => '  ' + line)
+          .join('\n');
         process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
         process.stdout.write(indentedOutput + '\n');
       }
     } else {
-      process.stdout.write(chalk.red(tuiSymbols.status.failed) + ' ' + state.paddedName + '    ' + state.paddedCmd + '  ' + state.duration + '\n');
+      process.stdout.write(
+        chalk.red(tuiSymbols.status.failed) +
+          ' ' +
+          state.paddedName +
+          '    ' +
+          state.paddedCmd +
+          '  ' +
+          state.duration +
+          '\n'
+      );
       if (verbose && state.output) {
-        const indentedOutput = state.output.split('\n').map(line => '  ' + line).join('\n');
+        const indentedOutput = state.output
+          .split('\n')
+          .map((line) => '  ' + line)
+          .join('\n');
         process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
         process.stdout.write(indentedOutput + '\n');
       }
     }
   }
 
-  const passed = taskStates.filter(s => s.status === 'success').length;
-  const timedOut = taskStates.filter(s => s.status === 'timedOut').length;
-  const failed = taskStates.filter(s => s.status === 'failed').length;
+  const passed = taskStates.filter((s) => s.status === 'success').length;
+  const timedOut = taskStates.filter((s) => s.status === 'timedOut').length;
+  const failed = taskStates.filter((s) => s.status === 'failed').length;
   const errors: TaskError[] = taskStates
-    .filter(s => s.status === 'failed' || s.status === 'timedOut')
-    .map(s => ({ task: s.task.name, output: s.output || '' }));
+    .filter((s) => s.status === 'failed' || s.status === 'timedOut')
+    .map((s) => ({ task: s.task.name, output: s.output || '' }));
 
   process.stdout.write('\n');
   let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`);
