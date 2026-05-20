@@ -1,5 +1,6 @@
 import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
 import type { Task } from '../types/index.js';
 
 const CONFIG_FILES = ['sncheck.config.ts', 'sncheck.config.js'];
@@ -22,6 +23,14 @@ export function getConfigPathExisting(): string | undefined {
     }
   }
   return undefined;
+}
+
+function formatFileWithPrettier(filePath: string): void {
+  try {
+    execSync(`npx prettier --write "${filePath}"`, { stdio: 'ignore' });
+  } catch (e) {
+    // Ignore formatting errors if prettier is not available
+  }
 }
 
 export function writeConfig(tasks: Task[]): void {
@@ -55,6 +64,7 @@ ${tasksContent}
   }
 
   writeFileSync(configPath, configContent, 'utf-8');
+  formatFileWithPrettier(configPath);
 }
 
 export function addTaskToConfig(task: Task): void {
@@ -90,6 +100,7 @@ export function addTaskToConfig(task: Task): void {
         );
         writeFileSync(configPath, newContent, 'utf-8');
       }
+      formatFileWithPrettier(configPath);
       return;
     }
   } else {
@@ -110,6 +121,7 @@ export function addTaskToConfig(task: Task): void {
         );
         writeFileSync(configPath, newContent, 'utf-8');
       }
+      formatFileWithPrettier(configPath);
       return;
     }
   }

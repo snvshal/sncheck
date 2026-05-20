@@ -9,11 +9,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
     "start": "node dist/cli.js",
+    "test": "npm run build && npm run start",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write .",
-    "test": "echo \"No tests specified\" && exit 0"
+    "format": "npx prettier --write ."
   },
   "keywords": [
     "cli",
