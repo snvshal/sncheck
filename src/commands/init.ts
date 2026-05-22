@@ -63,7 +63,6 @@ export async function initCommand(options?: InitOptions): Promise<void> {
     const success = chalk.hex("#34d399") // emerald
     const muted = chalk.hex("#94a3b8") // slate
     const dim = chalk.hex("#64748b") // slate dark
-    const info = chalk.hex("#fbbf24") // amber
     const cursor = accent(tuiSymbols.checkbox.cursor)
 
     try {
@@ -95,20 +94,20 @@ export async function initCommand(options?: InitOptions): Promise<void> {
                 keys
                   .map(([key, action]) => `${chalk.bold(key)} ${action}`)
                   .join(tuiSymbols.helpSeparator)
-              ),
-          },
-        },
-      });
+              )
+          }
+        }
+      })
 
-      console.log('\n');
+      console.log("\n")
 
-      selectedTasks = selected as Task[];
+      selectedTasks = selected as Task[]
 
-      console.log(chalk.blue('Selected tools:'));
+      console.log(chalk.blue("Selected tools:"))
       for (const task of selectedTasks) {
         console.log(
           `  ${chalk.green(tuiSymbols.status.success)} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`
-        );
+        )
       }
       console.log("")
     } catch {
