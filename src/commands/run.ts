@@ -10,14 +10,9 @@ import type { Task } from "../types/index.js"
 
 export async function runCommand(
   taskNames?: string[],
-  options?: {
-    parallel?: boolean
-    continue?: boolean
-    verbose?: boolean
-    timeout?: string
-  }
+  options?: { parallel?: boolean; continue?: boolean; verbose?: boolean; timeout?: string }
 ): Promise<void> {
-  const tasks = await loadConfig()
+  const tasks = await loadConfig();
 
   if (tasks.length === 0) {
     console.log(
@@ -45,15 +40,13 @@ export async function runCommand(
     tasksToRun = tasks
   }
 
-  const parallel = options?.parallel ?? false
-  const continueOnError = options?.continue ?? false
-  const verbose = options?.verbose ?? false
-  const timeout = options?.timeout ? parseInt(options.timeout, 10) : undefined
+  const parallel = options?.parallel ?? false;
+  const continueOnError = options?.continue ?? false;
+  const verbose = options?.verbose ?? false;
+  const timeout = options?.timeout ? parseInt(options.timeout, 10) : undefined;
   statusLine.show(
-    chalk.blue(
-      `Running ${tasksToRun.length} task(s)${parallel ? " in parallel" : ""}...`
-    )
-  )
+    chalk.blue(`Running ${tasksToRun.length} task(s)${parallel ? ' in parallel' : ''}...`)
+  );
 
   const result = await runTasks(tasksToRun, {
     parallel,

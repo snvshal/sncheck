@@ -35,24 +35,19 @@ export async function listCommand(): Promise<void> {
   const cmdWidth = Math.min(44, Math.max(7, ...tasks.map((t) => t.cmd.length)))
   const descWidth = Math.min(
     40,
-    Math.max(
-      11,
-      ...tasks.map((t) => (t.description ? t.description.length : 1))
-    )
-  )
-  const gap = "   "
+    Math.max(11, ...tasks.map((t) => (t.description ? t.description.length : 1)))
+  );
+  const gap = '   ';
 
   console.log(chalk.bold("\nConfigured tasks\n"))
   console.log(
-    `  ${accent("Name".padEnd(nameWidth))}${gap}${accent("Command".padEnd(cmdWidth))}${gap}${accent(
-      "Description".padEnd(descWidth)
+    `  ${accent('Name'.padEnd(nameWidth))}${gap}${accent('Command'.padEnd(cmdWidth))}${gap}${accent(
+      'Description'.padEnd(descWidth)
     )}`
-  )
+  );
   console.log(
-    muted(
-      `  ${"-".repeat(nameWidth)}${gap}${"-".repeat(cmdWidth)}${gap}${"-".repeat(descWidth)}`
-    )
-  )
+    muted(`  ${'-'.repeat(nameWidth)}${gap}${'-'.repeat(cmdWidth)}${gap}${'-'.repeat(descWidth)}`)
+  );
 
   for (const task of tasks) {
     const name = truncate(task.name, nameWidth).padEnd(nameWidth)
@@ -64,7 +59,7 @@ export async function listCommand(): Promise<void> {
       `  ${chalk.bold(name)}${gap}${muted(cmd)}${gap}${
         task.description ? description : dim(description)
       }`
-    )
+    );
   }
 
   console.log("")

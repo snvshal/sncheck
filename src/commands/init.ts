@@ -91,32 +91,24 @@ export async function initCommand(options?: InitOptions): Promise<void> {
             description: (text: string) => muted(`  ${text}`),
             disabled: (text: string) => dim(text),
             keysHelpTip: (keys: [string, string][]) =>
-              keys
-                .map(([key, action]) => {
-                  const paintedKey =
-                    key === "space"
-                      ? info(`[${key}]`)
-                      : key === "enter" || key === "return"
-                        ? success("⏎")
-                        : key.includes("arrow")
-                          ? accent("↑↓")
-                          : accent(chalk.bold(key))
-                  return `${paintedKey} ${muted(action)}`
-                })
-                .join(dim(tuiSymbols.helpSeparator))
-          }
-        }
-      })
+              muted(
+                keys
+                  .map(([key, action]) => `${chalk.bold(key)} ${action}`)
+                  .join(tuiSymbols.helpSeparator)
+              ),
+          },
+        },
+      });
 
-      console.log("\n")
+      console.log('\n');
 
-      selectedTasks = selected as Task[]
+      selectedTasks = selected as Task[];
 
-      console.log(chalk.blue("Selected tools:"))
+      console.log(chalk.blue('Selected tools:'));
       for (const task of selectedTasks) {
         console.log(
           `  ${chalk.green(tuiSymbols.status.success)} ${task.name.padEnd(maxNameLen)}   ${task.cmd}`
-        )
+        );
       }
       console.log("")
     } catch {
