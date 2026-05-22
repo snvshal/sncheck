@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import { initCommand } from './commands/init.js';
-import { runCommand } from './commands/run.js';
-import { addCommand } from './commands/add.js';
-import { editCommand } from './commands/edit.js';
-import { removeCommand } from './commands/remove.js';
-import { watchCommand } from './commands/watch.js';
-import { listCommand } from './commands/list.js';
+import { Command } from "commander"
+import { initCommand } from "./commands/init.js"
+import { runCommand } from "./commands/run.js"
+import { addCommand } from "./commands/add.js"
+import { editCommand } from "./commands/edit.js"
+import { removeCommand } from "./commands/remove.js"
+import { watchCommand } from "./commands/watch.js"
+import { listCommand } from "./commands/list.js"
 
-const program = new Command();
+const program = new Command()
 
 program
-  .name('sncheck')
-  .description('A CLI tool that orchestrates common project quality checks')
-  .version('1.0.0');
+  .name("sncheck")
+  .description("A CLI tool that orchestrates common project quality checks")
+  .version("1.0.0")
 
 program
   .command('init')
@@ -42,20 +42,23 @@ program
     }
   );
 
-program.command('add').description('Add a new task').action(addCommand);
+program.command("add").description("Add a new task").action(addCommand)
 
-program.command('edit').description('Edit an existing task').action(editCommand);
+program.command("edit").description("Edit an existing task").action(editCommand)
 
-program.command('remove').description('Remove a task').action(removeCommand);
+program.command("remove").description("Remove a task").action(removeCommand)
 
-program.command('watch').description('Run tasks in watch mode').action(watchCommand);
+program
+  .command("watch")
+  .description("Run tasks in watch mode")
+  .action(watchCommand)
 
-program.command('list').description('List all tasks').action(listCommand);
+program.command("list").description("List all tasks").action(listCommand)
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2)
 
 if (args.length === 0) {
-  runCommand();
+  runCommand()
 } else {
   const globalOptions = ['--parallel', '--continue', '--verbose', '--timeout'];
   const hasGlobalOption = args.some((arg) => globalOptions.includes(arg.split('=')[0]));
@@ -71,11 +74,11 @@ if (args.length === 0) {
 
     const timeoutIdx = args.indexOf('--timeout');
     if (timeoutIdx !== -1 && args[timeoutIdx + 1]) {
-      options.timeout = args[timeoutIdx + 1];
+      options.timeout = args[timeoutIdx + 1]
     }
 
     runCommand(undefined, options);
   } else {
-    program.parse();
+    program.parse()
   }
 }

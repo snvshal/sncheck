@@ -1,50 +1,52 @@
-import { execa } from 'execa';
-import chalk from 'chalk';
-import readline from 'readline';
-import type { Task, TaskError } from '../types/index.js';
-import { tuiSymbols } from '../utils/tuiSymbols.js';
+import { execa } from "execa"
+import chalk from "chalk"
+import readline from "readline"
+import type { Task, TaskError } from "../types/index.js"
+import { tuiSymbols } from "../utils/tuiSymbols.js"
 
 interface RunnerOptions {
-  parallel?: boolean;
-  continue?: boolean;
-  verbose?: boolean;
-  timeout?: number;
-  onStartOutput?: () => void;
+  parallel?: boolean
+  continue?: boolean
+  verbose?: boolean
+  timeout?: number
+  onStartOutput?: () => void
 }
 
 interface RunResult {
-  passed: number;
-  failed: number;
-  timedOut: number;
-  allPassed: boolean;
-  errors: TaskError[];
+  passed: number
+  failed: number
+  timedOut: number
+  allPassed: boolean
+  errors: TaskError[]
 }
 
 function padEnd(str: string, length: number): string {
-  return str + ' '.repeat(Math.max(0, length - str.length));
+  return str + " ".repeat(Math.max(0, length - str.length))
 }
 
 async function showErrorsPrompt(errors: TaskError[]): Promise<void> {
-  if (errors.length === 0) return;
+  if (errors.length === 0) return
 
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
-  });
+    output: process.stdout
+  })
 
-  process.stdout.write('\n');
-  const headerLine = tuiSymbols.lines.thick.repeat(23);
-  const headerWidth = headerLine.length * 2 + ' Errors '.length;
-  process.stdout.write(chalk.blue(`${headerLine} Errors ${headerLine}\n`));
+  process.stdout.write("\n")
+  const headerLine = tuiSymbols.lines.thick.repeat(23)
+  const headerWidth = headerLine.length * 2 + " Errors ".length
+  process.stdout.write(chalk.blue(`${headerLine} Errors ${headerLine}\n`))
 
   errors.forEach((err, idx) => {
-    process.stdout.write(chalk.red(`\n[${idx + 1}] ${err.task}:\n`));
-    process.stdout.write(err.output + '\n');
-  });
+    process.stdout.write(chalk.red(`\n[${idx + 1}] ${err.task}:\n`))
+    process.stdout.write(err.output + "\n")
+  })
 
-  process.stdout.write(chalk.blue(`\n${tuiSymbols.lines.thick.repeat(headerWidth)}\n`));
+  process.stdout.write(
+    chalk.blue(`\n${tuiSymbols.lines.thick.repeat(headerWidth)}\n`)
+  )
 
-  rl.close();
+  rl.close()
 }
 
 async function runSingleTask(
@@ -58,11 +60,11 @@ async function runSingleTask(
   const paddedName = padEnd(title, nameWidth);
   const paddedCmd = padEnd(task.cmd, cmdWidth);
 
-  const taskLine = paddedName + '    ' + paddedCmd + '    ';
-  const spinnerChars = tuiSymbols.spinner;
-  let spinnerIndex = 0;
+  const taskLine = paddedName + "    " + paddedCmd + "    "
+  const spinnerChars = tuiSymbols.spinner
+  let spinnerIndex = 0
 
-  let spinnerInterval: ReturnType<typeof setInterval> | undefined;
+  let spinnerInterval: ReturnType<typeof setInterval> | undefined
   if (!verbose) {
     spinnerInterval = setInterval(() => {
       process.stdout.write(
@@ -72,18 +74,18 @@ async function runSingleTask(
     }, 100);
   }
 
-  const startTime = Date.now();
+  const startTime = Date.now()
 
   try {
     const [command, ...args] = task.cmd.split(' ');
 
     const execaOptions = {
       shell: true,
-      stdio: 'pipe' as const,
-      reject: false,
-    };
+      stdio: "pipe" as const,
+      reject: false
+    }
 
-    let result;
+    let result
     if (timeout) {
       result = await Promise.race([
         execa(command, args, execaOptions),
@@ -92,11 +94,11 @@ async function runSingleTask(
         ),
       ]);
     } else {
-      result = await execa(command, args, execaOptions);
+      result = await execa(command, args, execaOptions)
     }
 
-    if (spinnerInterval) clearInterval(spinnerInterval);
-    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    if (spinnerInterval) clearInterval(spinnerInterval)
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s"
 
     if (verbose) {
       if (result.failed) {
@@ -125,7 +127,7 @@ async function runSingleTask(
           '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
         );
         if (result.shortMessage) {
-          process.stdout.write('  ' + result.shortMessage.split('\n')[0] + '\n');
+          process.stdout.write("  " + result.shortMessage.split("\n")[0] + "\n")
         }
       }
       return {
@@ -139,13 +141,13 @@ async function runSingleTask(
           '\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n'
         );
       }
-      return { success: true, output: '', timedOut: false };
+      return { success: true, output: "", timedOut: false }
     }
   } catch (error) {
-    if (spinnerInterval) clearInterval(spinnerInterval);
-    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-    const err = error as Error;
-    const timedOut = err.message?.includes('Timed out');
+    if (spinnerInterval) clearInterval(spinnerInterval)
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s"
+    const err = error as Error
+    const timedOut = err.message?.includes("Timed out")
     if (timedOut) {
       process.stdout.write(
         '\r' + chalk.yellow(tuiSymbols.status.timedOut) + ' ' + taskLine + '  ' + duration + '\n'
@@ -158,17 +160,20 @@ async function runSingleTask(
         );
       }
     }
-    return { success: false, output: String(error), timedOut };
+    return { success: false, output: String(error), timedOut }
   }
 }
 
-export async function runTasks(tasks: Task[], options: RunnerOptions = {}): Promise<RunResult> {
-  const { parallel = false, onStartOutput } = options;
-  const nameWidth = Math.max(...tasks.map((t) => t.name.length));
-  const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length));
-  const continueOnError = options?.continue ?? false;
-  const verbose = options?.verbose ?? false;
-  const timeout = options?.timeout;
+export async function runTasks(
+  tasks: Task[],
+  options: RunnerOptions = {}
+): Promise<RunResult> {
+  const { parallel = false, onStartOutput } = options
+  const nameWidth = Math.max(...tasks.map((t) => t.name.length))
+  const cmdWidth = Math.max(...tasks.map((t) => t.cmd.length))
+  const continueOnError = options?.continue ?? false
+  const verbose = options?.verbose ?? false
+  const timeout = options?.timeout
 
   if (parallel) {
     return runTasksParallel(
@@ -202,56 +207,69 @@ async function runTasksSequential(
   timeout?: number,
   onStartOutput?: () => void
 ): Promise<RunResult> {
-  const startTime = Date.now();
-  let passed = 0;
-  let failed = 0;
-  let timedOut = 0;
-  const errors: TaskError[] = [];
-  let didStartOutput = false;
+  const startTime = Date.now()
+  let passed = 0
+  let failed = 0
+  let timedOut = 0
+  const errors: TaskError[] = []
+  let didStartOutput = false
 
   const startOutput = (): void => {
-    if (didStartOutput) return;
-    didStartOutput = true;
-    onStartOutput?.();
-  };
+    if (didStartOutput) return
+    didStartOutput = true
+    onStartOutput?.()
+  }
 
   for (const task of tasks) {
-    startOutput();
-    const result = await runSingleTask(task, nameWidth, cmdWidth, verbose, timeout);
+    startOutput()
+    const result = await runSingleTask(
+      task,
+      nameWidth,
+      cmdWidth,
+      verbose,
+      timeout
+    )
     if (result.success) {
-      passed++;
+      passed++
     } else {
       if (result.timedOut) {
-        timedOut++;
-        errors.push({ task: task.name, output: result.output });
+        timedOut++
+        errors.push({ task: task.name, output: result.output })
       } else {
-        failed++;
-        errors.push({ task: task.name, output: result.output });
+        failed++
+        errors.push({ task: task.name, output: result.output })
       }
       if (!continueOnError) {
-        break;
+        break
       }
     }
   }
 
-  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + "s"
 
-  process.stdout.write('\n');
-  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`);
+  process.stdout.write("\n")
+  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`)
   if (timedOut > 0) {
-    summary += '  ' + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`);
+    summary +=
+      "  " + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`)
   }
   if (failed > 0) {
-    summary += '  ' + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`);
+    summary += "  " + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`)
   }
-  summary += `  (${totalTime})`;
-  process.stdout.write(summary + '\n');
+  summary += `  (${totalTime})`
+  process.stdout.write(summary + "\n")
 
   if (errors.length > 0 && !verbose) {
-    await showErrorsPrompt(errors);
+    await showErrorsPrompt(errors)
   }
 
-  return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
+  return {
+    passed,
+    failed,
+    timedOut,
+    allPassed: failed === 0 && timedOut === 0,
+    errors
+  }
 }
 
 async function runTasksParallel(
@@ -263,54 +281,54 @@ async function runTasksParallel(
   timeout?: number,
   onStartOutput?: () => void
 ): Promise<RunResult> {
-  const startTime = Date.now();
+  const startTime = Date.now()
 
   interface TaskState {
-    task: Task;
-    title: string;
-    paddedName: string;
-    paddedCmd: string;
-    status: 'running' | 'success' | 'failed' | 'timedOut';
-    duration?: string;
-    output?: string;
+    task: Task
+    title: string
+    paddedName: string
+    paddedCmd: string
+    status: "running" | "success" | "failed" | "timedOut"
+    duration?: string
+    output?: string
   }
 
   const taskStates: TaskState[] = tasks.map((task) => {
-    const title = task.name.charAt(0).toUpperCase() + task.name.slice(1);
-    const paddedName = padEnd(title, nameWidth);
-    const paddedCmd = padEnd(task.cmd, cmdWidth);
+    const title = task.name.charAt(0).toUpperCase() + task.name.slice(1)
+    const paddedName = padEnd(title, nameWidth)
+    const paddedCmd = padEnd(task.cmd, cmdWidth)
 
     return {
       task,
       title,
       paddedName,
       paddedCmd,
-      status: 'running' as const,
-    };
-  });
+      status: "running" as const
+    }
+  })
 
-  onStartOutput?.();
-  process.stdout.write('\n');
+  onStartOutput?.()
+  process.stdout.write("\n")
   for (const state of taskStates) {
     process.stdout.write(
       tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n'
     );
   }
-  process.stdout.write(chalk.blue('\nRunning in parallel...\n'));
+  process.stdout.write(chalk.blue("\nRunning in parallel...\n"))
 
   const runningPromises = taskStates.map((state) => {
-    const [command, ...args] = state.task.cmd.split(' ');
-    const taskStartTime = Date.now();
+    const [command, ...args] = state.task.cmd.split(" ")
+    const taskStartTime = Date.now()
 
     return (async () => {
       try {
         const execaOptions = {
           shell: true,
-          stdio: 'pipe' as const,
-          reject: false,
-        };
+          stdio: "pipe" as const,
+          reject: false
+        }
 
-        let result;
+        let result
         if (timeout) {
           result = await Promise.race([
             execa(command, args, execaOptions),
@@ -319,33 +337,34 @@ async function runTasksParallel(
             ),
           ]);
         } else {
-          result = await execa(command, args, execaOptions);
+          result = await execa(command, args, execaOptions)
         }
 
-        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
-        state.duration = duration;
-        state.status = result.failed ? 'failed' : 'success';
-        state.output = result.stderr || result.stdout || result.shortMessage || '';
+        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + "s"
+        state.duration = duration
+        state.status = result.failed ? "failed" : "success"
+        state.output =
+          result.stderr || result.stdout || result.shortMessage || ""
       } catch (error) {
-        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + 's';
-        state.duration = duration;
-        const err = error as Error;
-        if (err.message?.includes('Timed out')) {
-          state.status = 'timedOut';
-          state.output = err.message;
+        const duration = ((Date.now() - taskStartTime) / 1000).toFixed(1) + "s"
+        state.duration = duration
+        const err = error as Error
+        if (err.message?.includes("Timed out")) {
+          state.status = "timedOut"
+          state.output = err.message
         } else {
-          state.status = 'failed';
-          state.output = String(error);
+          state.status = "failed"
+          state.output = String(error)
         }
       }
-    })();
-  });
+    })()
+  })
 
-  await Promise.all(runningPromises);
+  await Promise.all(runningPromises)
 
-  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1) + "s"
 
-  process.stdout.write('\n');
+  process.stdout.write("\n")
   for (const state of taskStates) {
     if (state.status === 'success') {
       process.stdout.write(
@@ -406,20 +425,27 @@ async function runTasksParallel(
     .filter((s) => s.status === 'failed' || s.status === 'timedOut')
     .map((s) => ({ task: s.task.name, output: s.output || '' }));
 
-  process.stdout.write('\n');
-  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`);
+  process.stdout.write("\n")
+  let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`)
   if (timedOut > 0) {
-    summary += '  ' + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`);
+    summary +=
+      "  " + chalk.yellow(`${tuiSymbols.status.timedOut} ${timedOut} timed out`)
   }
   if (failed > 0) {
-    summary += '  ' + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`);
+    summary += "  " + chalk.red(`${tuiSymbols.status.failed} ${failed} failed`)
   }
-  summary += `  (${totalTime})`;
-  process.stdout.write(summary + '\n');
+  summary += `  (${totalTime})`
+  process.stdout.write(summary + "\n")
 
   if (errors.length > 0 && !verbose) {
-    await showErrorsPrompt(errors);
+    await showErrorsPrompt(errors)
   }
 
-  return { passed, failed, timedOut, allPassed: failed === 0 && timedOut === 0, errors };
+  return {
+    passed,
+    failed,
+    timedOut,
+    allPassed: failed === 0 && timedOut === 0,
+    errors
+  }
 }

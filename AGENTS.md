@@ -49,7 +49,7 @@ export const tasks = [
 ## TypeScript Usage
 
 ```ts
-import type { Task } from 'sncheck';
+import type { Task } from "sncheck"
 
 export const tasks: Task[] = [{ name: 'lint', cmd: 'npm run lint' }];
 ```

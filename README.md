@@ -77,30 +77,30 @@ Re-run tasks when files change.
 Generates `sncheck.config.ts`:
 
 ```typescript
-import type { Task } from 'sncheck';
+import type { Task } from "sncheck"
 
 export const tasks: Task[] = [
   {
-    name: 'typecheck',
-    cmd: 'tsc --noEmit',
-    description: 'TypeScript type checking',
+    name: "typecheck",
+    cmd: "tsc --noEmit",
+    description: "TypeScript type checking"
   },
   {
-    name: 'lint',
-    cmd: 'eslint .',
-    description: 'ESLint linting',
+    name: "lint",
+    cmd: "eslint .",
+    description: "ESLint linting"
   },
   {
-    name: 'format',
-    cmd: 'prettier --check .',
-    description: 'Check code formatting',
+    name: "format",
+    cmd: "prettier --check .",
+    description: "Check code formatting"
   },
   {
-    name: 'test',
-    cmd: 'vitest run',
-    description: 'Run Vitest tests',
-  },
-];
+    name: "test",
+    cmd: "vitest run",
+    description: "Run Vitest tests"
+  }
+]
 ```
 
 ## Auto-detected Tools
