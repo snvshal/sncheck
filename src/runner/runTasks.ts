@@ -56,9 +56,9 @@ async function runSingleTask(
   verbose: boolean,
   timeout?: number
 ): Promise<{ success: boolean; output: string; timedOut: boolean }> {
-  const title = task.name.charAt(0).toUpperCase() + task.name.slice(1);
-  const paddedName = padEnd(title, nameWidth);
-  const paddedCmd = padEnd(task.cmd, cmdWidth);
+  const title = task.name.charAt(0).toUpperCase() + task.name.slice(1)
+  const paddedName = padEnd(title, nameWidth)
+  const paddedCmd = padEnd(task.cmd, cmdWidth)
 
   const taskLine = paddedName + "    " + paddedCmd + "    "
   const spinnerChars = tuiSymbols.spinner
@@ -68,16 +68,19 @@ async function runSingleTask(
   if (!verbose) {
     spinnerInterval = setInterval(() => {
       process.stdout.write(
-        '\r' + chalk.yellow(spinnerChars[spinnerIndex % spinnerChars.length]) + ' ' + taskLine
-      );
-      spinnerIndex++;
-    }, 100);
+        "\r" +
+          chalk.yellow(spinnerChars[spinnerIndex % spinnerChars.length]) +
+          " " +
+          taskLine
+      )
+      spinnerIndex++
+    }, 100)
   }
 
   const startTime = Date.now()
 
   try {
-    const [command, ...args] = task.cmd.split(' ');
+    const [command, ...args] = task.cmd.split(" ")
 
     const execaOptions = {
       shell: true,
@@ -90,9 +93,12 @@ async function runSingleTask(
       result = await Promise.race([
         execa(command, args, execaOptions),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
-        ),
-      ]);
+          setTimeout(
+            () => reject(new Error(`Timed out after ${timeout}s`)),
+            timeout * 1000
+          )
+        )
+      ])
     } else {
       result = await execa(command, args, execaOptions)
     }
@@ -103,43 +109,69 @@ async function runSingleTask(
     if (verbose) {
       if (result.failed) {
         process.stdout.write(
-          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
-        );
+          "\r" +
+            chalk.red(tuiSymbols.status.failed) +
+            " " +
+            taskLine +
+            "  " +
+            duration +
+            "\n"
+        )
         if (result.stdout || result.stderr) {
-          const output = result.stderr || result.stdout || '';
+          const output = result.stderr || result.stdout || ""
           const indentedOutput = output
-            .split('\n')
-            .map((line) => '  ' + line)
-            .join('\n');
-          process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
-          process.stdout.write(indentedOutput + '\n');
+            .split("\n")
+            .map((line) => "  " + line)
+            .join("\n")
+          process.stdout.write(
+            "  " + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + "\n"
+          )
+          process.stdout.write(indentedOutput + "\n")
         }
       } else {
         process.stdout.write(
-          '\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n'
-        );
+          "\r" +
+            chalk.green(tuiSymbols.status.success) +
+            " " +
+            taskLine +
+            "  " +
+            duration +
+            "\n"
+        )
       }
     }
 
     if (result.failed) {
       if (!verbose) {
         process.stdout.write(
-          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
-        );
+          "\r" +
+            chalk.red(tuiSymbols.status.failed) +
+            " " +
+            taskLine +
+            "  " +
+            duration +
+            "\n"
+        )
         if (result.shortMessage) {
           process.stdout.write("  " + result.shortMessage.split("\n")[0] + "\n")
         }
       }
       return {
         success: false,
-        output: result.stderr || result.stdout || result.shortMessage || '',
-        timedOut: false,
-      };
+        output: result.stderr || result.stdout || result.shortMessage || "",
+        timedOut: false
+      }
     } else {
       if (!verbose) {
         process.stdout.write(
-          '\r' + chalk.green(tuiSymbols.status.success) + ' ' + taskLine + '  ' + duration + '\n'
-        );
+          "\r" +
+            chalk.green(tuiSymbols.status.success) +
+            " " +
+            taskLine +
+            "  " +
+            duration +
+            "\n"
+        )
       }
       return { success: true, output: "", timedOut: false }
     }
@@ -150,14 +182,26 @@ async function runSingleTask(
     const timedOut = err.message?.includes("Timed out")
     if (timedOut) {
       process.stdout.write(
-        '\r' + chalk.yellow(tuiSymbols.status.timedOut) + ' ' + taskLine + '  ' + duration + '\n'
-      );
-      process.stdout.write('  ' + chalk.yellow(err.message) + '\n');
+        "\r" +
+          chalk.yellow(tuiSymbols.status.timedOut) +
+          " " +
+          taskLine +
+          "  " +
+          duration +
+          "\n"
+      )
+      process.stdout.write("  " + chalk.yellow(err.message) + "\n")
     } else {
       if (!verbose) {
         process.stdout.write(
-          '\r' + chalk.red(tuiSymbols.status.failed) + ' ' + taskLine + '  ' + duration + '\n'
-        );
+          "\r" +
+            chalk.red(tuiSymbols.status.failed) +
+            " " +
+            taskLine +
+            "  " +
+            duration +
+            "\n"
+        )
       }
     }
     return { success: false, output: String(error), timedOut }
@@ -184,7 +228,7 @@ export async function runTasks(
       verbose,
       timeout,
       onStartOutput
-    );
+    )
   }
 
   return runTasksSequential(
@@ -195,7 +239,7 @@ export async function runTasks(
     verbose,
     timeout,
     onStartOutput
-  );
+  )
 }
 
 async function runTasksSequential(
@@ -311,8 +355,13 @@ async function runTasksParallel(
   process.stdout.write("\n")
   for (const state of taskStates) {
     process.stdout.write(
-      tuiSymbols.status.pending + ' ' + state.paddedName + '    ' + state.paddedCmd + '\n'
-    );
+      tuiSymbols.status.pending +
+        " " +
+        state.paddedName +
+        "    " +
+        state.paddedCmd +
+        "\n"
+    )
   }
   process.stdout.write(chalk.blue("\nRunning in parallel...\n"))
 
@@ -333,9 +382,12 @@ async function runTasksParallel(
           result = await Promise.race([
             execa(command, args, execaOptions),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Timed out after ${timeout}s`)), timeout * 1000)
-            ),
-          ]);
+              setTimeout(
+                () => reject(new Error(`Timed out after ${timeout}s`)),
+                timeout * 1000
+              )
+            )
+          ])
         } else {
           result = await execa(command, args, execaOptions)
         }
@@ -366,64 +418,68 @@ async function runTasksParallel(
 
   process.stdout.write("\n")
   for (const state of taskStates) {
-    if (state.status === 'success') {
+    if (state.status === "success") {
       process.stdout.write(
         chalk.green(tuiSymbols.status.success) +
-          ' ' +
+          " " +
           state.paddedName +
-          '    ' +
+          "    " +
           state.paddedCmd +
-          '  ' +
+          "  " +
           state.duration +
-          '\n'
-      );
-    } else if (state.status === 'timedOut') {
+          "\n"
+      )
+    } else if (state.status === "timedOut") {
       process.stdout.write(
         chalk.yellow(tuiSymbols.status.timedOut) +
-          ' ' +
+          " " +
           state.paddedName +
-          '    ' +
+          "    " +
           state.paddedCmd +
-          '  ' +
+          "  " +
           state.duration +
-          '\n'
-      );
+          "\n"
+      )
       if (verbose && state.output) {
         const indentedOutput = state.output
-          .split('\n')
-          .map((line) => '  ' + line)
-          .join('\n');
-        process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
-        process.stdout.write(indentedOutput + '\n');
+          .split("\n")
+          .map((line) => "  " + line)
+          .join("\n")
+        process.stdout.write(
+          "  " + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + "\n"
+        )
+        process.stdout.write(indentedOutput + "\n")
       }
     } else {
       process.stdout.write(
         chalk.red(tuiSymbols.status.failed) +
-          ' ' +
+          " " +
           state.paddedName +
-          '    ' +
+          "    " +
           state.paddedCmd +
-          '  ' +
+          "  " +
           state.duration +
-          '\n'
-      );
+          "\n"
+      )
       if (verbose && state.output) {
         const indentedOutput = state.output
-          .split('\n')
-          .map((line) => '  ' + line)
-          .join('\n');
-        process.stdout.write('  ' + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + '\n');
-        process.stdout.write(indentedOutput + '\n');
+          .split("\n")
+          .map((line) => "  " + line)
+          .join("\n")
+        process.stdout.write(
+          "  " + chalk.gray(tuiSymbols.lines.thin.repeat(50)) + "\n"
+        )
+        process.stdout.write(indentedOutput + "\n")
       }
     }
   }
 
-  const passed = taskStates.filter((s) => s.status === 'success').length;
-  const timedOut = taskStates.filter((s) => s.status === 'timedOut').length;
-  const failed = taskStates.filter((s) => s.status === 'failed').length;
+  const passed = taskStates.filter((s) => s.status === "success").length
+  const timedOut = taskStates.filter((s) => s.status === "timedOut").length
+  const failed = taskStates.filter((s) => s.status === "failed").length
   const errors: TaskError[] = taskStates
-    .filter((s) => s.status === 'failed' || s.status === 'timedOut')
-    .map((s) => ({ task: s.task.name, output: s.output || '' }));
+    .filter((s) => s.status === "failed" || s.status === "timedOut")
+    .map((s) => ({ task: s.task.name, output: s.output || "" }))
 
   process.stdout.write("\n")
   let summary = chalk.green(`${tuiSymbols.status.success} ${passed} passed`)

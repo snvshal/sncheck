@@ -35,15 +35,15 @@ Tasks are defined in `sncheck.config.js` or `sncheck.config.ts`:
 /** @type {import('sncheck').Task[]} */
 export const tasks = [
   {
-    name: 'lint',
-    cmd: 'npm run lint',
-    description: 'Run ESLint',
+    name: "lint",
+    cmd: "npm run lint",
+    description: "Run ESLint"
   },
   {
-    name: 'test',
-    cmd: 'npm test',
-  },
-];
+    name: "test",
+    cmd: "npm test"
+  }
+]
 ```
 
 ## TypeScript Usage
@@ -51,7 +51,7 @@ export const tasks = [
 ```ts
 import type { Task } from "sncheck"
 
-export const tasks: Task[] = [{ name: 'lint', cmd: 'npm run lint' }];
+export const tasks: Task[] = [{ name: "lint", cmd: "npm run lint" }]
 ```
 
 ## Development

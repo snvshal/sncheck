@@ -1,7 +1,7 @@
-import { writeFileSync, existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
-import { execSync } from 'child_process';
-import type { Task } from '../types/index.js';
+import { writeFileSync, existsSync, readFileSync } from "fs"
+import { resolve } from "path"
+import { execSync } from "child_process"
+import type { Task } from "../types/index.js"
 
 const CONFIG_FILES = ["sncheck.config.ts", "sncheck.config.js"]
 
@@ -27,7 +27,7 @@ export function getConfigPathExisting(): string | undefined {
 
 function formatFileWithPrettier(filePath: string): void {
   try {
-    execSync(`npx prettier --write "${filePath}"`, { stdio: 'ignore' });
+    execSync(`npx prettier --write "${filePath}"`, { stdio: "ignore" })
   } catch (e) {
     // Ignore formatting errors if prettier is not available
   }
@@ -39,7 +39,9 @@ export function writeConfig(tasks: Task[]): void {
 
   const tasksContent = tasks
     .map((task) => {
-      const description = task.description ? `\n    description: "${task.description}",` : '';
+      const description = task.description
+        ? `\n    description: "${task.description}",`
+        : ""
       return `  {
     name: "${task.name}",
     cmd: "${task.cmd}",${description}
@@ -63,8 +65,8 @@ ${tasksContent}
 `
   }
 
-  writeFileSync(configPath, configContent, 'utf-8');
-  formatFileWithPrettier(configPath);
+  writeFileSync(configPath, configContent, "utf-8")
+  formatFileWithPrettier(configPath)
 }
 
 export function addTaskToConfig(task: Task): void {
@@ -100,8 +102,8 @@ export function addTaskToConfig(task: Task): void {
         )
         writeFileSync(configPath, newContent, "utf-8")
       }
-      formatFileWithPrettier(configPath);
-      return;
+      formatFileWithPrettier(configPath)
+      return
     }
   } else {
     const match = existingContent.match(
@@ -123,8 +125,8 @@ export function addTaskToConfig(task: Task): void {
         )
         writeFileSync(configPath, newContent, "utf-8")
       }
-      formatFileWithPrettier(configPath);
-      return;
+      formatFileWithPrettier(configPath)
+      return
     }
   }
 
